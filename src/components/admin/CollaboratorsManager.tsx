@@ -405,30 +405,6 @@ export const CollaboratorsManager: React.FC = () => {
                   <span>Admissão: {formatAdmissionDate(collab.admissionDate)}</span>
                 </div>
               </div>
-
-              {/* Action Buttons Row: Sempre visível no mobile e desktop */}
-              <div className="pt-1 flex items-center gap-2">
-                <button
-                  type="button"
-                  onClick={() => openEditModal(collab)}
-                  className="flex-1 flex items-center justify-center gap-2 bg-dark-900 hover:bg-gold-500/10 text-gold-400 hover:text-gold-300 border border-gold-500/30 hover:border-gold-500 font-semibold py-2.5 px-3 rounded-xl text-xs transition-all cursor-pointer shadow-sm"
-                >
-                  <Edit3 className="w-3.5 h-3.5" />
-                  <span>Editar Cadastro & Diária</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    if (window.confirm(`Excluir cadastro do colaborador ${collab.name}?`)) {
-                      deleteCollaborator(collab.id);
-                    }
-                  }}
-                  className="p-2.5 text-gray-400 hover:text-rose-400 hover:bg-rose-500/10 border border-white/10 hover:border-rose-500/30 rounded-xl transition-all cursor-pointer"
-                  title="Excluir Colaborador"
-                >
-                  <Trash2 className="w-4 h-4" />
-                </button>
-              </div>
             </div>
           );
         })}
