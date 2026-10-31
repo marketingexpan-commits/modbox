@@ -101,6 +101,7 @@ export const SalesManager: React.FC = () => {
     new Date(Date.now() + 86400000 * 3).toISOString().split('T')[0]
   );
   const [scheduledTime, setScheduledTime] = useState<string>('08:30');
+  const [estimatedDurationDays, setEstimatedDurationDays] = useState<number>(1);
   const [selectedCollabIds, setSelectedCollabIds] = useState<string[]>(['col-01', 'col-02']);
 
   const handleContainerChange = (cntId: string) => {
@@ -139,6 +140,7 @@ export const SalesManager: React.FC = () => {
     setPaymentStatus('parcial');
     setScheduledDate(new Date(Date.now() + 86400000 * 3).toISOString().split('T')[0]);
     setScheduledTime('08:30');
+    setEstimatedDurationDays(1);
     setSelectedCollabIds(['col-01', 'col-02']);
     setIsModalOpen(true);
   };
@@ -166,6 +168,7 @@ export const SalesManager: React.FC = () => {
     setPaymentStatus(sale.financials.paymentStatus);
     setScheduledDate(sale.schedule.scheduledDate);
     setScheduledTime(sale.schedule.scheduledTime);
+    setEstimatedDurationDays(sale.schedule.estimatedDurationDays || 1);
     setSelectedCollabIds(sale.assignedCollaboratorIds);
     setIsModalOpen(true);
   };
@@ -202,6 +205,12 @@ export const SalesManager: React.FC = () => {
     const balanceDue = Math.max(0, totalAmount - downPayment);
     const grossProfit = totalAmount - productionCost;
 
+    const calcEndDate = (start: string, days: number) => {
+      const d = new Date(start + 'T00:00:00');
+      d.setDate(d.getDate() + (days - 1));
+      return d.toISOString().split('T')[0];
+    };
+
     const salePayload = {
       client: {
         name: clientName,
@@ -234,7 +243,9 @@ export const SalesManager: React.FC = () => {
       schedule: {
         scheduledDate,
         scheduledTime,
-        estimatedDurationHours: 6
+        estimatedDurationHours: estimatedDurationDays * 8,
+        estimatedDurationDays: Number(estimatedDurationDays),
+        endDate: calcEndDate(scheduledDate, Number(estimatedDurationDays))
       },
       assignedCollaboratorIds: selectedCollabIds,
       status: 'projeto_aprovado' as ProductionStatus,
@@ -443,7 +454,13 @@ export const SalesManager: React.FC = () => {
                   </span>
                   <div className="font-bold text-sm text-gold-300 flex items-center gap-1.5">
                     <Calendar className="w-3.5 h-3.5" />
-                    <span>{new Date(sale.schedule.scheduledDate + 'T00:00:00').toLocaleDateString('pt-BR')} às {sale.schedule.scheduledTime}</span>
+                    <span>
+                      {new Date(sale.schedule.scheduledDate + 'T00:00:00').toLocaleDateString('pt-BR')}
+                      {sale.schedule.endDate && sale.schedule.endDate !== sale.schedule.scheduledDate
+                        ? ` até ${new Date(sale.schedule.endDate + 'T00:00:00').toLocaleDateString('pt-BR')} (${sale.schedule.estimatedDurationDays || 1} dias)`
+                        : ` (${sale.schedule.estimatedDurationDays || 1} dia)`
+                      } às {sale.schedule.scheduledTime}
+                    </span>
                   </div>
                   <div className="text-gray-300 flex items-start gap-1">
                     <MapPin className="w-3.5 h-3.5 text-gold-500 shrink-0 mt-0.5" />
@@ -783,15 +800,28 @@ export const SalesManager: React.FC = () => {
             <h4 className="text-xs font-bold text-gold-400 uppercase tracking-wider mb-2">
               5. Agenda e Equipe de Montagem Escalada
             </h4>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-3">
               <div>
-                <label className="text-xs text-gray-300 block mb-1">Data Prevista da Montagem *</label>
+                <label className="text-xs text-gray-300 block mb-1">Data de Início da Montagem *</label>
                 <input
                   type="date"
                   required
                   value={scheduledDate}
                   onChange={e => setScheduledDate(e.target.value)}
                   className="w-full bg-dark-950 border border-white/10 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-gold-500"
+                />
+              </div>
+
+              <div>
+                <label className="text-xs text-amber-400 font-semibold block mb-1">Duração Estimada (Dias) *</label>
+                <input
+                  type="number"
+                  min="1"
+                  max="30"
+                  required
+                  value={estimatedDurationDays}
+                  onChange={e => setEstimatedDurationDays(Math.max(1, Number(e.target.value)))}
+                  className="w-full bg-dark-950 border border-amber-500/40 rounded-xl px-3 py-2 text-sm text-amber-300 font-mono focus:outline-none focus:border-gold-500"
                 />
               </div>
 

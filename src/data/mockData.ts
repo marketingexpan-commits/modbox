@@ -319,7 +319,9 @@ export const INITIAL_SALES: SaleOrder[] = [
     schedule: {
       scheduledDate: '2026-10-28', // Amanhã!
       scheduledTime: '08:30',
-      estimatedDurationHours: 6
+      estimatedDurationHours: 6,
+      estimatedDurationDays: 2,
+      endDate: '2026-10-29'
     },
     assignedCollaboratorIds: ['col-01', 'col-02', 'col-04'],
     status: 'montagem_local',
@@ -417,7 +419,9 @@ export const INITIAL_SALES: SaleOrder[] = [
     schedule: {
       scheduledDate: '2026-10-30',
       scheduledTime: '07:00',
-      estimatedDurationHours: 8
+      estimatedDurationHours: 8,
+      estimatedDurationDays: 1,
+      endDate: '2026-10-30'
     },
     assignedCollaboratorIds: ['col-01', 'col-03', 'col-04'],
     status: 'acabamento_pintura',
@@ -478,7 +482,9 @@ export const INITIAL_SALES: SaleOrder[] = [
     schedule: {
       scheduledDate: '2026-11-03',
       scheduledTime: '09:00',
-      estimatedDurationHours: 4
+      estimatedDurationHours: 4,
+      estimatedDurationDays: 2,
+      endDate: '2026-11-04'
     },
     assignedCollaboratorIds: ['col-02', 'col-05'],
     status: 'transporte',
@@ -540,7 +546,9 @@ export const INITIAL_SALES: SaleOrder[] = [
     schedule: {
       scheduledDate: '2026-11-10',
       scheduledTime: '08:00',
-      estimatedDurationHours: 12
+      estimatedDurationHours: 12,
+      estimatedDurationDays: 3,
+      endDate: '2026-11-12'
     },
     assignedCollaboratorIds: ['col-01', 'col-02', 'col-03', 'col-04', 'col-05'],
     status: 'isolamento',

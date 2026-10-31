@@ -1,4 +1,4 @@
-﻿import React from 'react';
+import React from 'react';
 import {
   RefreshCw,
   Clock,
@@ -136,9 +136,10 @@ export const Header: React.FC<HeaderProps> = ({ currentTab, setCurrentTab, onLog
           <nav className="flex items-center lg:justify-start gap-1.5 overflow-x-auto pb-1 scrollbar-none snap-x">
             {[
               { id: 'dashboard', label: 'Geral', icon: LayoutDashboard },
-              { id: 'containers', label: 'Catálogo', icon: Package },
+              { id: 'agenda', label: 'Agenda & Obras', icon: CalendarDays },
               { id: 'sales', label: 'Vendas & Pedidos', icon: ClipboardList },
               { id: 'pipeline', label: 'Status & Produção', icon: Factory },
+              { id: 'containers', label: 'Catálogo', icon: Package },
               { id: 'cashflow', label: 'Fluxo de Caixa', icon: Wallet },
               { id: 'collaborators', label: 'Colaboradores', icon: Users },
               { id: 'admins', label: 'Gestores', icon: ShieldCheck },

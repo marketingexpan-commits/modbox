@@ -1,4 +1,4 @@
-﻿import React, { useState } from 'react';
+import React, { useState } from 'react';
 import { ModBoxProvider, useModBox } from './context/ModBoxContext';
 import { Header } from './components/common/Header';
 import { AdminDashboard } from './components/admin/AdminDashboard';
@@ -8,6 +8,7 @@ import { CashFlowManager } from './components/admin/CashFlowManager';
 import { CollaboratorsManager } from './components/admin/CollaboratorsManager';
 import { ProductionPipeline } from './components/admin/ProductionPipeline';
 import { AdminsManager } from './components/admin/AdminsManager';
+import { ScheduleCalendar } from './components/admin/ScheduleCalendar';
 import { EmployeeDashboard } from './components/employee/EmployeeDashboard';
 import { WelcomeScreen } from './components/common/WelcomeScreen';
 import { LoginScreen } from './components/common/LoginScreen';
@@ -52,6 +53,12 @@ const MainApp: React.FC = () => {
                 onNavigate={setCurrentTab}
                 onOpenNewSale={() => setCurrentTab('sales')}
                 onOpenNewContainer={() => setCurrentTab('containers')}
+              />
+            )}
+            {currentTab === 'agenda' && (
+              <ScheduleCalendar 
+                onNavigateToSale={() => setCurrentTab('sales')}
+                onOpenNewSale={() => setCurrentTab('sales')}
               />
             )}
             {currentTab === 'containers' && <ContainersManager />}

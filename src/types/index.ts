@@ -128,9 +128,11 @@ export interface SaleOrder {
     grossProfit: number;
   };
   schedule: {
-    scheduledDate: string; // YYYY-MM-DD
+    scheduledDate: string; // YYYY-MM-DD (Data de Início)
     scheduledTime: string; // HH:MM
     estimatedDurationHours: number;
+    estimatedDurationDays?: number; // Duração em dias (1, 2, 3...)
+    endDate?: string; // YYYY-MM-DD (Data de Conclusão)
   };
   assignedCollaboratorIds: string[];
   status: ProductionStatus;

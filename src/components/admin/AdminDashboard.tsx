@@ -1,4 +1,4 @@
-﻿import React from 'react';
+import React from 'react';
 import { 
   DollarSign, 
   TrendingUp, 
@@ -166,10 +166,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
               </div>
             </div>
             <button
-              onClick={() => onNavigate('sales')}
+              onClick={() => onNavigate('agenda')}
               className="text-xs text-gold-500 hover:text-gold-400 font-bold flex items-center gap-1 transition-colors"
             >
-              <span>Ver todas</span>
+              <span>Abrir Agenda</span>
               <ArrowUpRight className="w-3.5 h-3.5" />
             </button>
           </div>
