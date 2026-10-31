@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useMemo } from 'react';
 import { 
   DollarSign, 
   TrendingUp, 
@@ -10,7 +10,8 @@ import {
   Clock, 
   Truck,
   Plus,
-  MapPin
+  MapPin,
+  Filter
 } from 'lucide-react';
 import { useModBox } from '../../context/ModBoxContext';
 import { PRODUCTION_STAGES_CONFIG } from '../../data/mockData';
@@ -21,12 +22,58 @@ interface AdminDashboardProps {
   onOpenNewContainer: () => void;
 }
 
+type PeriodOption = 'mes_atual' | 'mes_anterior' | 'ano_atual' | 'tudo';
+
+const PERIOD_LABELS: Record<PeriodOption, string> = {
+  mes_atual: 'Outubro / 2026',
+  mes_anterior: 'Setembro / 2026',
+  ano_atual: 'Ano 2026',
+  tudo: 'Acumulado Geral'
+};
+
 export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   onNavigate,
   onOpenNewSale,
   onOpenNewContainer,
 }) => {
   const { stats, sales, cashFlow, collaborators } = useModBox();
+  const [selectedPeriod, setSelectedPeriod] = useState<PeriodOption>('mes_atual');
+
+  // Filtra as entradas do fluxo de caixa de acordo com o período selecionado
+  const filteredCashFlow = useMemo(() => {
+    if (selectedPeriod === 'mes_atual') {
+      return cashFlow.filter(c => c.date.startsWith('2026-10'));
+    }
+    if (selectedPeriod === 'mes_anterior') {
+      return cashFlow.filter(c => c.date.startsWith('2026-09'));
+    }
+    if (selectedPeriod === 'ano_atual') {
+      return cashFlow.filter(c => c.date.startsWith('2026'));
+    }
+    return cashFlow; // 'tudo'
+  }, [cashFlow, selectedPeriod]);
+
+  // Estatísticas calculadas dinamicamente para o período escolhido
+  const periodStats = useMemo(() => {
+    const revenue = filteredCashFlow
+      .filter(item => item.type === 'receita')
+      .reduce((sum, item) => sum + item.amount, 0);
+
+    const costs = filteredCashFlow
+      .filter(item => item.type === 'despesa')
+      .reduce((sum, item) => sum + item.amount, 0);
+
+    const profit = revenue - costs;
+    const margin = revenue > 0 ? (profit / revenue) * 100 : 0;
+
+    return {
+      revenue,
+      costs,
+      profit,
+      margin,
+      entriesCount: filteredCashFlow.length
+    };
+  }, [filteredCashFlow]);
 
   const upcomingMontagens = sales
     .filter(s => s.status !== 'concluido' && s.status !== 'orcamento')
@@ -70,19 +117,70 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         </div>
       </div>
 
+      {/* Period Selector Bar */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-dark-850 p-3 sm:p-4 rounded-2xl border border-white/5">
+        <div className="flex items-center gap-2">
+          <Calendar className="w-4 h-4 text-gold-500 shrink-0" />
+          <span className="text-xs font-bold uppercase tracking-wider text-white">
+            Período Financeiro:
+          </span>
+          <span className="px-2 py-0.5 rounded text-[11px] font-mono font-bold bg-gold-500/15 text-gold-400 border border-gold-500/30">
+            {PERIOD_LABELS[selectedPeriod]}
+          </span>
+        </div>
+
+        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0 scrollbar-none">
+          <button
+            onClick={() => setSelectedPeriod('mes_atual')}
+            className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all whitespace-nowrap ${
+              selectedPeriod === 'mes_atual' ? 'bg-gold-500 text-black font-bold shadow-sm' : 'bg-dark-900 text-gray-400 hover:text-white border border-white/5'
+            }`}
+          >
+            Este Mês (Out/26)
+          </button>
+          <button
+            onClick={() => setSelectedPeriod('mes_anterior')}
+            className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all whitespace-nowrap ${
+              selectedPeriod === 'mes_anterior' ? 'bg-gold-500 text-black font-bold shadow-sm' : 'bg-dark-900 text-gray-400 hover:text-white border border-white/5'
+            }`}
+          >
+            Mês Anterior (Set/26)
+          </button>
+          <button
+            onClick={() => setSelectedPeriod('ano_atual')}
+            className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all whitespace-nowrap ${
+              selectedPeriod === 'ano_atual' ? 'bg-gold-500 text-black font-bold shadow-sm' : 'bg-dark-900 text-gray-400 hover:text-white border border-white/5'
+            }`}
+          >
+            Ano 2026
+          </button>
+          <button
+            onClick={() => setSelectedPeriod('tudo')}
+            className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all whitespace-nowrap ${
+              selectedPeriod === 'tudo' ? 'bg-gold-500 text-black font-bold shadow-sm' : 'bg-dark-900 text-gray-400 hover:text-white border border-white/5'
+            }`}
+          >
+            Todo o Histórico
+          </button>
+        </div>
+      </div>
+
       {/* KPI Cards Row */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {/* Receita Total */}
         <div className="bg-dark-850 border border-gold-500/30 rounded-2xl p-5 hover:border-gold-500 transition-all group">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Receita Realizada</span>
+            <div>
+              <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider block">Receita Realizada</span>
+              <span className="text-[10px] text-gold-400 font-mono font-semibold">({PERIOD_LABELS[selectedPeriod]})</span>
+            </div>
             <div className="p-2.5 rounded-xl bg-gold-500/15 text-gold-500">
               <DollarSign className="w-5 h-5" />
             </div>
           </div>
           <div className="mt-3">
             <span className="text-2xl sm:text-3xl font-extrabold text-white font-mono">
-              {formatCurrency(stats.totalRevenue)}
+              {formatCurrency(periodStats.revenue)}
             </span>
           </div>
           <div className="mt-2 flex items-center gap-1.5 text-xs text-emerald-400 font-medium">
@@ -94,14 +192,17 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         {/* Custos Operacionais */}
         <div className="bg-dark-850 border border-white/5 rounded-2xl p-5 hover:border-white/15 transition-all group">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Custos & Produção</span>
+            <div>
+              <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider block">Custos & Produção</span>
+              <span className="text-[10px] text-rose-400 font-mono font-semibold">({PERIOD_LABELS[selectedPeriod]})</span>
+            </div>
             <div className="p-2.5 rounded-xl bg-rose-500/10 text-rose-400">
               <ArrowDownRight className="w-5 h-5" />
             </div>
           </div>
           <div className="mt-3">
             <span className="text-2xl sm:text-3xl font-extrabold text-white font-mono">
-              {formatCurrency(stats.totalCosts)}
+              {formatCurrency(periodStats.costs)}
             </span>
           </div>
           <div className="mt-2 text-xs text-gray-400">
@@ -112,19 +213,22 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         {/* Lucro Líquido */}
         <div className="bg-dark-850 border border-gold-500/40 rounded-2xl p-5 relative overflow-hidden group">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-gold-500 uppercase tracking-wider">Lucro Líquido</span>
+            <div>
+              <span className="text-xs font-bold text-gold-500 uppercase tracking-wider block">Lucro Líquido</span>
+              <span className="text-[10px] text-emerald-400 font-mono font-semibold">({PERIOD_LABELS[selectedPeriod]})</span>
+            </div>
             <div className="p-2.5 rounded-xl bg-gold-500/15 text-gold-500">
               <TrendingUp className="w-5 h-5" />
             </div>
           </div>
           <div className="mt-3">
             <span className="text-2xl sm:text-3xl font-extrabold text-gold-500 font-mono">
-              {formatCurrency(stats.netProfit)}
+              {formatCurrency(periodStats.profit)}
             </span>
           </div>
           <div className="mt-2 flex items-center gap-1.5 text-xs text-gray-300 font-medium">
             <span className="bg-gold-500/20 text-gold-500 px-2 py-0.5 rounded text-[11px] font-bold border border-gold-500/30">
-              {stats.profitMargin.toFixed(1)}% Margem
+              {periodStats.margin.toFixed(1)}% Margem
             </span>
             <span>sobre faturamento</span>
           </div>

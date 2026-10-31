@@ -19,6 +19,9 @@ import { useModBox } from '../../context/ModBoxContext';
 import { Collaborator, CollaboratorStatus } from '../../types';
 import { Modal } from '../common/Modal';
 
+const formatCurrency = (val: number) =>
+  (val || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+
 export const CollaboratorsManager: React.FC = () => {
   const { collaborators, addCollaborator, updateCollaborator, deleteCollaborator, sales } = useModBox();
 
@@ -255,7 +258,12 @@ export const CollaboratorsManager: React.FC = () => {
                     </div>
                     <div>
                       <h3 className="font-bold text-white text-base">{collab.name}</h3>
-                      <p className="text-xs text-gold-400 font-medium">{collab.role}</p>
+                      <div className="flex items-center gap-2 mt-1 flex-wrap">
+                        <p className="text-xs text-gold-400 font-medium">{collab.role}</p>
+                        <span className="text-[11px] font-mono font-bold px-2 py-0.5 rounded-md bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                          {formatCurrency(collab.dailyRate || 280)} / diária
+                        </span>
+                      </div>
                     </div>
                   </div>
 
@@ -357,11 +365,17 @@ export const CollaboratorsManager: React.FC = () => {
 
               {/* Footer info: Installations count & currently assigned orders */}
               <div className="bg-dark-900 p-3.5 rounded-xl border border-white/5 flex flex-wrap items-center justify-between gap-2 text-xs">
-                <div className="flex items-center gap-1.5 text-gray-300">
-                  <Award className="w-4 h-4 text-gold-400" />
-                  <span>
-                    <strong className="text-white font-mono">{collab.completedInstallations}</strong> montagens concluídas
-                  </span>
+                <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-1.5 text-gray-300">
+                    <Award className="w-4 h-4 text-gold-400" />
+                    <span>
+                      <strong className="text-white font-mono">{collab.completedInstallations}</strong> montagens concluídas
+                    </span>
+                  </div>
+                  <span className="text-gray-600">|</span>
+                  <div className="flex items-center gap-1 text-emerald-400 font-mono font-semibold">
+                    <span>Diária: {formatCurrency(collab.dailyRate || 280)}</span>
+                  </div>
                 </div>
 
                 <div className="text-gray-400 text-[11px]">
@@ -579,7 +593,7 @@ export const CollaboratorsManager: React.FC = () => {
             <h4 className="font-bold text-gold-400 uppercase tracking-wider mb-2">
               3. Dados Profissionais & Função
             </h4>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
               <div>
                 <label className="text-gray-300 block mb-1">Cargo / Função *</label>
                 <input
@@ -590,6 +604,23 @@ export const CollaboratorsManager: React.FC = () => {
                   onChange={e => setRole(e.target.value)}
                   className="w-full bg-dark-950 border border-white/10 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-gold-500"
                 />
+              </div>
+
+              <div>
+                <label className="text-gray-300 block mb-1">Valor da Diária (R$) *</label>
+                <div className="relative">
+                  <span className="absolute left-3 top-2 text-emerald-400 font-mono text-xs font-bold">R$</span>
+                  <input
+                    type="number"
+                    min="0"
+                    step="10"
+                    required
+                    placeholder="280"
+                    value={dailyRate}
+                    onChange={e => setDailyRate(Number(e.target.value))}
+                    className="w-full bg-dark-950 border border-emerald-500/30 rounded-xl pl-9 pr-3 py-2 text-white font-mono focus:outline-none focus:border-emerald-500"
+                  />
+                </div>
               </div>
 
               <div>
@@ -617,7 +648,7 @@ export const CollaboratorsManager: React.FC = () => {
                 </select>
               </div>
 
-              <div className="sm:col-span-3">
+              <div className="sm:col-span-2 lg:col-span-4">
                 <label className="text-gray-300 block mb-1">Especialidades (separadas por vírgula)</label>
                 <input
                   type="text"

@@ -100,6 +100,8 @@ export interface ProjectExpense {
   notes?: string;
   cashFlowEntryId?: string;
   createdBy?: string;
+  collaboratorId?: string;
+  daysCount?: number;
 }
 
 export interface SaleOrder {

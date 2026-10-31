@@ -18,10 +18,11 @@ import {
   ChevronRight,
   Receipt,
   Coins,
-  AlertCircle
+  AlertCircle,
+  HardHat
 } from 'lucide-react';
 import { useModBox } from '../../context/ModBoxContext';
-import { SaleOrder, ProductionStatus, CashFlowCategory, ProjectExpense } from '../../types';
+import { SaleOrder, ProductionStatus, CashFlowCategory, ProjectExpense, Collaborator } from '../../types';
 import { Modal } from '../common/Modal';
 import { PRODUCTION_STAGES_CONFIG } from '../../data/mockData';
 
@@ -103,6 +104,7 @@ export const SalesManager: React.FC = () => {
   const [scheduledTime, setScheduledTime] = useState<string>('08:30');
   const [estimatedDurationDays, setEstimatedDurationDays] = useState<number>(1);
   const [selectedCollabIds, setSelectedCollabIds] = useState<string[]>(['col-01', 'col-02']);
+  const [collabDaysOverride, setCollabDaysOverride] = useState<Record<string, number>>({});
 
   const handleContainerChange = (cntId: string) => {
     setSelectedContainerId(cntId);
@@ -196,6 +198,45 @@ export const SalesManager: React.FC = () => {
     setExpenseDesc('');
     setExpenseAmount('');
     setExpenseNotes('');
+  };
+
+  const handleLaunchCollabDailyRate = (saleId: string, collab: Collaborator, days: number) => {
+    const rate = collab.dailyRate || 280;
+    const amount = rate * days;
+    const targetSale = sales.find(s => s.id === saleId);
+    const date = targetSale?.schedule?.scheduledDate || new Date().toISOString().split('T')[0];
+
+    addProjectExpense(saleId, {
+      description: `Diária de Montagem (${days}x) — ${collab.name}`,
+      amount,
+      category: 'mao_de_obra_montagem',
+      date,
+      notes: `${days} dia(s) a ${formatCurrency(rate)}/dia. Função: ${collab.role}.`,
+      collaboratorId: collab.id,
+      daysCount: days
+    });
+  };
+
+  const handleLaunchAllCollabsDailyRates = (
+    saleId: string, 
+    collabsToLaunch: Array<{ collab: Collaborator; days: number }>
+  ) => {
+    const targetSale = sales.find(s => s.id === saleId);
+    const date = targetSale?.schedule?.scheduledDate || new Date().toISOString().split('T')[0];
+
+    collabsToLaunch.forEach(({ collab, days }) => {
+      const rate = collab.dailyRate || 280;
+      const amount = rate * days;
+      addProjectExpense(saleId, {
+        description: `Diária de Montagem (${days}x) — ${collab.name}`,
+        amount,
+        category: 'mao_de_obra_montagem',
+        date,
+        notes: `${days} dia(s) a ${formatCurrency(rate)}/dia. Função: ${collab.role}.`,
+        collaboratorId: collab.id,
+        daysCount: days
+      });
+    });
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -1068,6 +1109,154 @@ export const SalesManager: React.FC = () => {
                 </div>
               </div>
 
+              {/* Seção Inteligente: Apropriação de Diárias da Equipe Escalada (1 Clique) */}
+              {(() => {
+                const assignedCols = collaborators.filter(c => selectedSaleForCosts.assignedCollaboratorIds?.includes(c.id));
+                const pendingCollabsList = assignedCols
+                  .filter(col => !expenses.some(e => e.collaboratorId === col.id || (e.category === 'mao_de_obra_montagem' && e.description.toLowerCase().includes(col.name.toLowerCase()))))
+                  .map(col => {
+                    const days = collabDaysOverride[col.id] !== undefined ? collabDaysOverride[col.id] : (selectedSaleForCosts.schedule?.estimatedDurationDays || 1);
+                    const amount = (col.dailyRate || 280) * days;
+                    return { collab: col, days, amount };
+                  });
+                const totalPendingAmount = pendingCollabsList.reduce((sum, item) => sum + item.amount, 0);
+
+                return (
+                  <div className="bg-gradient-to-br from-dark-900 to-dark-850 p-4 rounded-2xl border border-emerald-500/30 space-y-3">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                      <div className="flex items-center gap-2.5">
+                        <div className="w-8 h-8 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400 shrink-0">
+                          <Users className="w-4 h-4" />
+                        </div>
+                        <div>
+                          <h4 className="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-2">
+                            Equipe Escalada & Diárias de Montagem
+                            <span className="text-[10px] normal-case font-normal px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 font-mono">
+                              {assignedCols.length} profissional(is)
+                            </span>
+                          </h4>
+                          <p className="text-[11px] text-gray-400">
+                            Confira os dias trabalhados e lance as diárias no custo da obra e no caixa com 1 clique.
+                          </p>
+                        </div>
+                      </div>
+
+                      {pendingCollabsList.length > 1 && (
+                        <button
+                          type="button"
+                          onClick={() => handleLaunchAllCollabsDailyRates(selectedSaleForCosts.id, pendingCollabsList)}
+                          className="px-3 py-1.5 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-black font-bold text-xs flex items-center gap-1.5 transition-all self-start sm:self-auto shadow-lg shadow-emerald-500/10 cursor-pointer"
+                        >
+                          <DollarSign className="w-3.5 h-3.5 stroke-[3]" />
+                          <span>Lançar Todos os {pendingCollabsList.length} Pendentes ({formatCurrency(totalPendingAmount)})</span>
+                        </button>
+                      )}
+                    </div>
+
+                    {assignedCols.length === 0 ? (
+                      <div className="bg-dark-950/60 p-3 rounded-xl border border-white/5 text-xs text-gray-400 flex items-center gap-2">
+                        <AlertCircle className="w-4 h-4 text-amber-400 shrink-0" />
+                        <span>
+                          Nenhum colaborador vinculado a esta obra ainda. Edite o pedido para escalar montadores e calcular as diárias.
+                        </span>
+                      </div>
+                    ) : (
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5 pt-1">
+                        {assignedCols.map(col => {
+                          const defaultDays = selectedSaleForCosts.schedule?.estimatedDurationDays || 1;
+                          const currentDays = collabDaysOverride[col.id] !== undefined ? collabDaysOverride[col.id] : defaultDays;
+                          const rate = col.dailyRate || 280;
+                          const totalAmount = rate * currentDays;
+                          const launchedExpense = expenses.find(e => 
+                            e.collaboratorId === col.id || 
+                            (e.category === 'mao_de_obra_montagem' && e.description.toLowerCase().includes(col.name.toLowerCase()))
+                          );
+                          const isLaunched = !!launchedExpense;
+
+                          return (
+                            <div
+                              key={col.id}
+                              className={`p-3 rounded-xl border transition-all flex flex-col justify-between space-y-2.5 ${
+                                isLaunched 
+                                  ? 'bg-dark-950/80 border-emerald-500/20' 
+                                  : 'bg-dark-950 border-white/10 hover:border-emerald-500/40'
+                              }`}
+                            >
+                              <div className="flex items-start justify-between gap-2">
+                                <div className="flex items-center gap-2.5">
+                                  <div className="w-8 h-8 rounded-lg bg-gold-500/10 border border-gold-500/20 flex items-center justify-center text-gold-400 font-bold text-xs">
+                                    {col.name.charAt(0)}
+                                  </div>
+                                  <div>
+                                    <div className="text-xs font-bold text-white leading-tight">{col.name}</div>
+                                    <div className="text-[10px] text-gray-400">{col.role}</div>
+                                  </div>
+                                </div>
+
+                                <div className="text-right">
+                                  <span className="text-[11px] font-mono font-bold text-emerald-400">
+                                    {formatCurrency(rate)}
+                                  </span>
+                                  <span className="text-[10px] text-gray-500 block">/ dia</span>
+                                </div>
+                              </div>
+
+                              <div className="flex items-center justify-between gap-2 pt-1 border-t border-white/5">
+                                {!isLaunched ? (
+                                  <>
+                                    <div className="flex items-center gap-1.5 text-xs text-gray-300">
+                                      <label className="text-[10px] text-gray-400">Dias:</label>
+                                      <input
+                                        type="number"
+                                        min="0.5"
+                                        max="60"
+                                        step="0.5"
+                                        value={currentDays}
+                                        onChange={e => setCollabDaysOverride(prev => ({
+                                          ...prev,
+                                          [col.id]: Math.max(0.5, parseFloat(e.target.value) || 1)
+                                        }))}
+                                        className="w-14 bg-dark-900 border border-white/10 rounded-lg px-2 py-1 text-xs text-center text-white font-mono focus:outline-none focus:border-emerald-500"
+                                      />
+                                      <span className="text-[11px] text-gray-400 font-mono">
+                                        = <strong className="text-emerald-400 font-bold">{formatCurrency(totalAmount)}</strong>
+                                      </span>
+                                    </div>
+
+                                    <button
+                                      type="button"
+                                      onClick={() => handleLaunchCollabDailyRate(selectedSaleForCosts.id, col, currentDays)}
+                                      className="px-2.5 py-1 rounded-lg bg-emerald-500/20 hover:bg-emerald-500 text-emerald-300 hover:text-black font-bold text-[11px] transition-all flex items-center gap-1 border border-emerald-500/30 cursor-pointer"
+                                    >
+                                      <Plus className="w-3 h-3 stroke-[3]" />
+                                      <span>Lançar no Caixa</span>
+                                    </button>
+                                  </>
+                                ) : (
+                                  <div className="w-full flex items-center justify-between">
+                                    <span className="text-[11px] font-semibold text-emerald-400 flex items-center gap-1">
+                                      <CheckCircle2 className="w-3.5 h-3.5" />
+                                      <span>Lançado na obra ({formatCurrency(launchedExpense.amount)})</span>
+                                    </span>
+                                    <button
+                                      type="button"
+                                      onClick={() => deleteProjectExpense(selectedSaleForCosts.id, launchedExpense.id)}
+                                      className="text-[10px] text-gray-500 hover:text-rose-400 transition-colors underline cursor-pointer"
+                                    >
+                                      Cancelar
+                                    </button>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                );
+              })()}
+
               {/* Formulário: Lançar Custo / Material Nesta Obra */}
               <div className="bg-dark-900/90 p-4 rounded-2xl border border-gold-500/20 space-y-3">
                 <div className="flex items-center gap-2">
@@ -1248,7 +1437,7 @@ export const SalesManager: React.FC = () => {
               {/* Informação sobre Integração Automática */}
               <div className="p-3 bg-dark-950 rounded-xl border border-gold-500/20 text-[11px] text-gray-400 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                 <span>
-                  💡 <strong>Abatimento Automático:</strong> Os custos lançados aqui são abatidos imediatamente do lucro desta obra e integrados em tempo real ao <strong>Fluxo de Caixa geral</strong>.
+                  💡 <strong>Abatimento Automático:</strong> Os custos lançados aqui são abatidos imediatamente do lucro desta obra e integrados em tempo real ao <strong>Financeiro geral</strong>.
                 </span>
                 <button
                   onClick={() => setSelectedSaleForCostsId(null)}

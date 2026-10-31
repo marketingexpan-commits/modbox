@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { 
   DollarSign, 
   TrendingUp, 
@@ -19,10 +19,20 @@ import { useModBox } from '../../context/ModBoxContext';
 import { CashFlowEntry, CashFlowType, CashFlowCategory } from '../../types';
 import { Modal } from '../common/Modal';
 
+type PeriodOption = 'mes_atual' | 'mes_anterior' | 'ano_atual' | 'tudo';
+
+const PERIOD_LABELS: Record<PeriodOption, string> = {
+  mes_atual: 'Outubro / 2026',
+  mes_anterior: 'Setembro / 2026',
+  ano_atual: 'Ano 2026',
+  tudo: 'Acumulado Geral'
+};
+
 export const CashFlowManager: React.FC = () => {
   const { cashFlow, addCashFlowEntry, deleteCashFlowEntry, stats, sales } = useModBox();
 
   const [searchTerm, setSearchTerm] = useState('');
+  const [selectedPeriod, setSelectedPeriod] = useState<PeriodOption>('mes_atual');
   const [typeFilter, setTypeFilter] = useState<'todos' | 'receita' | 'despesa' | 'obras'>('todos');
   const [isModalOpen, setIsModalOpen] = useState(false);
 
@@ -58,20 +68,62 @@ export const CashFlowManager: React.FC = () => {
     return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(val);
   };
 
-  // Group monthly data for comparison chart
-  const monthlyData = [
-    { month: 'Agosto/26', receita: 65000, custo: 38000, lucro: 27000 },
-    { month: 'Setembro/26', receita: 112000, custo: 68000, lucro: 44000 },
-    { month: 'Outubro/26', receita: stats.totalRevenue, custo: stats.totalCosts, lucro: stats.netProfit },
-  ];
+  // Filtra as entradas do fluxo de caixa de acordo com o período selecionado
+  const periodCashFlow = useMemo(() => {
+    if (selectedPeriod === 'mes_atual') {
+      return cashFlow.filter(c => c.date.startsWith('2026-10'));
+    }
+    if (selectedPeriod === 'mes_anterior') {
+      return cashFlow.filter(c => c.date.startsWith('2026-09'));
+    }
+    if (selectedPeriod === 'ano_atual') {
+      return cashFlow.filter(c => c.date.startsWith('2026'));
+    }
+    return cashFlow; // 'tudo'
+  }, [cashFlow, selectedPeriod]);
 
-  // Group costs by category
-  const costCategories = cashFlow
-    .filter(item => item.type === 'despesa')
-    .reduce((acc, item) => {
-      acc[item.category] = (acc[item.category] || 0) + item.amount;
-      return acc;
-    }, {} as Record<string, number>);
+  // Estatísticas calculadas dinamicamente para o período escolhido
+  const periodStats = useMemo(() => {
+    const revenue = periodCashFlow
+      .filter(item => item.type === 'receita')
+      .reduce((sum, item) => sum + item.amount, 0);
+
+    const costs = periodCashFlow
+      .filter(item => item.type === 'despesa')
+      .reduce((sum, item) => sum + item.amount, 0);
+
+    const profit = revenue - costs;
+    const margin = revenue > 0 ? (profit / revenue) * 100 : 0;
+
+    return {
+      revenue,
+      costs,
+      profit,
+      margin
+    };
+  }, [periodCashFlow]);
+
+  // Group monthly data for comparison chart with real October values
+  const monthlyData = useMemo(() => {
+    const octRevenue = cashFlow.filter(c => c.date.startsWith('2026-10') && c.type === 'receita').reduce((s, c) => s + c.amount, 0);
+    const octCosts = cashFlow.filter(c => c.date.startsWith('2026-10') && c.type === 'despesa').reduce((s, c) => s + c.amount, 0);
+
+    return [
+      { month: 'Agosto/26', receita: 65000, custo: 38000, lucro: 27000 },
+      { month: 'Setembro/26', receita: 112000, custo: 68000, lucro: 44000 },
+      { month: 'Outubro/26', receita: octRevenue, custo: octCosts, lucro: octRevenue - octCosts },
+    ];
+  }, [cashFlow]);
+
+  // Group costs by category for the active period
+  const costCategories = useMemo(() => {
+    return periodCashFlow
+      .filter(item => item.type === 'despesa')
+      .reduce((acc, item) => {
+        acc[item.category] = (acc[item.category] || 0) + item.amount;
+        return acc;
+      }, {} as Record<string, number>);
+  }, [periodCashFlow]);
 
   const categoryLabels: Record<string, string> = {
     venda_conteiner: 'Venda de Contêineres',
@@ -85,7 +137,7 @@ export const CashFlowManager: React.FC = () => {
     outros: 'Outros Custos',
   };
 
-  const filteredEntries = cashFlow.filter(item => {
+  const filteredEntries = periodCashFlow.filter(item => {
     const matchesSearch = item.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
                           (item.clientOrSupplier && item.clientOrSupplier.toLowerCase().includes(searchTerm.toLowerCase()));
     const matchesType = typeFilter === 'todos' 
@@ -105,7 +157,7 @@ export const CashFlowManager: React.FC = () => {
             <DollarSign className="w-4 h-4" />
             <span>Gestão Financeira & Controladoria</span>
           </div>
-          <h2 className="text-2xl font-bold text-white">Fluxo de Caixa e Demonstração de Resultados</h2>
+          <h2 className="text-2xl font-bold text-white">Gestão Financeira</h2>
           <p className="text-sm text-gray-400 mt-0.5">
             Acompanhe receitas de contêineres vendidos, custos com insumos industriais e lucro líquido.
           </p>
@@ -120,18 +172,69 @@ export const CashFlowManager: React.FC = () => {
         </button>
       </div>
 
+      {/* Period Selector Bar */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-dark-850 p-3 sm:p-4 rounded-2xl border border-white/5">
+        <div className="flex items-center gap-2">
+          <Calendar className="w-4 h-4 text-gold-500 shrink-0" />
+          <span className="text-xs font-bold uppercase tracking-wider text-white">
+            Período Financeiro:
+          </span>
+          <span className="px-2 py-0.5 rounded text-[11px] font-mono font-bold bg-gold-500/15 text-gold-400 border border-gold-500/30">
+            {PERIOD_LABELS[selectedPeriod]}
+          </span>
+        </div>
+
+        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0 scrollbar-none">
+          <button
+            onClick={() => setSelectedPeriod('mes_atual')}
+            className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all whitespace-nowrap ${
+              selectedPeriod === 'mes_atual' ? 'bg-gold-500 text-black font-bold shadow-sm' : 'bg-dark-900 text-gray-400 hover:text-white border border-white/5'
+            }`}
+          >
+            Este Mês (Out/26)
+          </button>
+          <button
+            onClick={() => setSelectedPeriod('mes_anterior')}
+            className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all whitespace-nowrap ${
+              selectedPeriod === 'mes_anterior' ? 'bg-gold-500 text-black font-bold shadow-sm' : 'bg-dark-900 text-gray-400 hover:text-white border border-white/5'
+            }`}
+          >
+            Mês Anterior (Set/26)
+          </button>
+          <button
+            onClick={() => setSelectedPeriod('ano_atual')}
+            className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all whitespace-nowrap ${
+              selectedPeriod === 'ano_atual' ? 'bg-gold-500 text-black font-bold shadow-sm' : 'bg-dark-900 text-gray-400 hover:text-white border border-white/5'
+            }`}
+          >
+            Ano 2026
+          </button>
+          <button
+            onClick={() => setSelectedPeriod('tudo')}
+            className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all whitespace-nowrap ${
+              selectedPeriod === 'tudo' ? 'bg-gold-500 text-black font-bold shadow-sm' : 'bg-dark-900 text-gray-400 hover:text-white border border-white/5'
+            }`}
+          >
+            Todo o Histórico
+          </button>
+        </div>
+      </div>
+
       {/* KPI Cards Row */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         {/* Receita Total */}
         <div className="bg-dark-850 border border-gold-500/20 rounded-2xl p-5">
           <div className="flex items-center justify-between text-xs text-gray-400">
-            <span className="font-semibold uppercase tracking-wider">Receitas Totais</span>
+            <div>
+              <span className="font-semibold uppercase tracking-wider block">Receitas Totais</span>
+              <span className="text-[10px] text-gold-400 font-mono font-semibold">({PERIOD_LABELS[selectedPeriod]})</span>
+            </div>
             <div className="p-2 rounded-xl bg-gold-500/10 text-gold-400">
               <ArrowUpRight className="w-4 h-4" />
             </div>
           </div>
           <div className="text-2xl sm:text-3xl font-extrabold text-white font-mono mt-2">
-            {formatCurrency(stats.totalRevenue)}
+            {formatCurrency(periodStats.revenue)}
           </div>
           <span className="text-xs text-emerald-400 mt-1 block font-medium">
             Entradas de vendas e parcelas
@@ -141,13 +244,16 @@ export const CashFlowManager: React.FC = () => {
         {/* Custos Operacionais */}
         <div className="bg-dark-850 border border-white/5 rounded-2xl p-5">
           <div className="flex items-center justify-between text-xs text-gray-400">
-            <span className="font-semibold uppercase tracking-wider">Custos & Despesas</span>
+            <div>
+              <span className="font-semibold uppercase tracking-wider block">Custos & Despesas</span>
+              <span className="text-[10px] text-rose-400 font-mono font-semibold">({PERIOD_LABELS[selectedPeriod]})</span>
+            </div>
             <div className="p-2 rounded-xl bg-rose-500/10 text-rose-400">
               <ArrowDownRight className="w-4 h-4" />
             </div>
           </div>
           <div className="text-2xl sm:text-3xl font-extrabold text-white font-mono mt-2">
-            {formatCurrency(stats.totalCosts)}
+            {formatCurrency(periodStats.costs)}
           </div>
           <span className="text-xs text-gray-400 mt-1 block font-medium">
             Matéria-prima, montagem e fretes
@@ -158,16 +264,19 @@ export const CashFlowManager: React.FC = () => {
         <div className="bg-dark-850 border border-gold-500/40 rounded-2xl p-5 relative overflow-hidden">
           <div className="absolute top-0 right-0 w-24 h-24 bg-gold-500/10 blur-xl pointer-events-none" />
           <div className="flex items-center justify-between text-xs text-gold-400">
-            <span className="font-bold uppercase tracking-wider">Resultado Líquido</span>
+            <div>
+              <span className="font-bold uppercase tracking-wider block">Resultado Líquido</span>
+              <span className="text-[10px] text-emerald-400 font-mono font-semibold">({PERIOD_LABELS[selectedPeriod]})</span>
+            </div>
             <div className="p-2 rounded-xl bg-gold-500/20 text-gold-400">
               <TrendingUp className="w-4 h-4" />
             </div>
           </div>
           <div className="text-2xl sm:text-3xl font-extrabold text-gold-400 font-mono mt-2">
-            {formatCurrency(stats.netProfit)}
+            {formatCurrency(periodStats.profit)}
           </div>
           <span className="text-xs text-gold-300 mt-1 block font-semibold">
-            Margem Bruta de {stats.profitMargin.toFixed(1)}% sobre faturamento
+            Margem Bruta de {periodStats.margin.toFixed(1)}% sobre faturamento
           </span>
         </div>
       </div>
