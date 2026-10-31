@@ -1,4 +1,4 @@
-import React from 'react';
+﻿import React from 'react';
 import { 
   DollarSign, 
   TrendingUp, 
@@ -43,12 +43,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       <div className="bg-dark-850 border border-gold-500/30 rounded-2xl p-4 sm:p-6 relative overflow-hidden shadow-md">
         <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
-            <div className="flex items-center gap-2 text-gold-500 font-bold text-xs tracking-wider uppercase mb-1">
-              <span className="w-2 h-2 rounded-full bg-gold-500"></span>
-              Painel Executivo de Gestão
-            </div>
             <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
-              Visão Geral da ModBox
+              Painel de Gestão
             </h1>
             <p className="text-gray-400 text-sm mt-1 max-w-xl">
               Acompanhamento integrado de produção, montagens em campo, colaboradores e gestão de caixa em tempo real.
@@ -309,3 +305,4 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     </div>
   );
 };
+

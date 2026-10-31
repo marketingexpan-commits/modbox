@@ -140,7 +140,7 @@ export const Header: React.FC<HeaderProps> = ({ currentTab, setCurrentTab, onLog
               { id: 'sales', label: 'Vendas & Pedidos', icon: ClipboardList },
               { id: 'pipeline', label: 'Status & Produção', icon: Factory },
               { id: 'cashflow', label: 'Fluxo de Caixa', icon: Wallet },
-              { id: 'collaborators', label: 'Colaboradores (RH)', icon: Users },
+              { id: 'collaborators', label: 'Colaboradores', icon: Users },
               { id: 'admins', label: 'Gestores', icon: ShieldCheck },
             ].map(tab => (
               <button
@@ -181,4 +181,5 @@ export const Header: React.FC<HeaderProps> = ({ currentTab, setCurrentTab, onLog
     </header>
   );
 };
+
 
