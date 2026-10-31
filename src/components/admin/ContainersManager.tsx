@@ -151,13 +151,9 @@ export const ContainersManager: React.FC<ContainersManagerProps> = ({ readOnly =
       {/* Top Bar */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-dark-850 p-4 sm:p-6 rounded-2xl border border-white/5">
         <div>
-          <div className="flex items-center gap-2 text-gold-400 font-semibold text-xs uppercase tracking-wider mb-1">
-            <Box className="w-4 h-4" />
-            <span>Engenharia & Catálogo de Produtos</span>
-          </div>
-          <h2 className="text-2xl font-bold text-white">Modelos e Dimensões de Contêineres</h2>
+          <h2 className="text-2xl font-bold text-white">Modelos e Dimensões</h2>
           <p className="text-sm text-gray-400 mt-0.5">
-            Cadastre as medidas exatas, especificações técnicas e custos dos contêineres marítimos personalizados.
+            Cadastre as medidas exatas, especificações técnicas e custos dos contêineres.
           </p>
         </div>
 

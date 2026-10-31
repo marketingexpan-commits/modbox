@@ -72,10 +72,10 @@ export const Container3DPreview: React.FC<Container3DPreviewProps> = ({
       </div>
 
       {/* Visual Container Rendering (Clean SVG with Solid Gold) */}
-      <div className="relative h-56 flex items-center justify-center bg-dark-950 rounded-xl border border-white/5 p-4 my-2">
+      <div className="relative h-72 sm:h-80 md:h-96 flex items-center justify-center bg-dark-950 rounded-xl border border-white/5 p-1 sm:p-2 my-2 overflow-hidden">
         <svg
-          viewBox="0 0 500 240"
-          className="w-full h-full max-h-48"
+          viewBox={viewAngle === 'iso' ? '82 32 365 205' : viewAngle === 'front' ? '125 28 250 220' : '40 30 410 215'}
+          className="w-full h-full max-h-72 sm:max-h-80 md:max-h-96"
         >
           <defs>
             <linearGradient id="containerFront" x1="0%" y1="0%" x2="0%" y2="100%">
@@ -204,25 +204,14 @@ export const Container3DPreview: React.FC<Container3DPreviewProps> = ({
               {/* ModBox Stencil */}
               <text
                 x="325" textAnchor="middle"
-                y="128"
+                y="132"
                 fill={SOLID_GOLD}
-                fontSize="16"
+                fontSize="17"
                 fontWeight="800"
                 letterSpacing="4"
-                transform="rotate(-7.5 325 128)"
+                transform="rotate(-7.5 325 132)"
               >
                 MODBOX
-              </text>
-              <text
-                x="325" textAnchor="middle"
-                y="141"
-                fill={SOLID_GOLD}
-                fontSize="6"
-                letterSpacing="1"
-                transform="rotate(-7.5 325 141)"
-                opacity="0.8"
-              >
-                HEAVY DUTY CORTEN STEEL
               </text>
 
               {/* Dimension indicators */}
@@ -303,8 +292,15 @@ export const Container3DPreview: React.FC<Container3DPreviewProps> = ({
               <rect x="8" y="171" width="16" height="16" rx="1" fill={SOLID_GOLD} />
               <rect x="386" y="171" width="16" height="16" rx="1" fill={SOLID_GOLD} />
 
-              <rect x="140" y="80" width="140" height="40" fill="#0d0d12" rx="4" stroke={SOLID_GOLD} strokeWidth="1" />
-              <text x="210" y="105" textAnchor="middle" fill={SOLID_GOLD} fontSize="16" fontWeight="bold" letterSpacing="3">
+              <text
+                x="210"
+                y="112"
+                textAnchor="middle"
+                fill={SOLID_GOLD}
+                fontSize="18"
+                fontWeight="800"
+                letterSpacing="4"
+              >
                 MODBOX
               </text>
 
