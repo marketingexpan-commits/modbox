@@ -16,6 +16,11 @@ import {
   INITIAL_CASH_FLOW,
   INITIAL_ADMINS
 } from '../data/mockData';
+import {
+  subscribeToCollection,
+  setFirestoreDoc,
+  deleteFirestoreDoc
+} from '../services/firestoreSync';
 
 interface ModBoxContextType {
   role: AppRole;
@@ -178,6 +183,23 @@ export const ModBoxProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     }
   }, [cashFlow]);
 
+  // Real-time synchronization with Firestore
+  useEffect(() => {
+    const unsubAdmins = subscribeToCollection<AdminUser>('admins', setAdmins, INITIAL_ADMINS);
+    const unsubContainers = subscribeToCollection<ContainerModel>('containers', setContainers, INITIAL_CONTAINERS);
+    const unsubCollaborators = subscribeToCollection<Collaborator>('collaborators', setCollaborators, INITIAL_COLLABORATORS);
+    const unsubSales = subscribeToCollection<SaleOrder>('sales', setSales, INITIAL_SALES);
+    const unsubCashFlow = subscribeToCollection<CashFlowEntry>('cashflow', setCashFlow, INITIAL_CASH_FLOW);
+
+    return () => {
+      unsubAdmins();
+      unsubContainers();
+      unsubCollaborators();
+      unsubSales();
+      unsubCashFlow();
+    };
+  }, []);
+
   // Containers actions
   const addContainer = (data: Omit<ContainerModel, 'id'>) => {
     const newContainer: ContainerModel = {
@@ -185,14 +207,21 @@ export const ModBoxProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       id: `cnt-${Date.now()}`
     };
     setContainers(prev => [newContainer, ...prev]);
+    setFirestoreDoc('containers', newContainer);
   };
 
   const updateContainer = (id: string, data: Partial<ContainerModel>) => {
-    setContainers(prev => prev.map(c => c.id === id ? { ...c, ...data } : c));
+    setContainers(prev => {
+      const updated = prev.map(c => c.id === id ? { ...c, ...data } : c);
+      const target = updated.find(c => c.id === id);
+      if (target) setFirestoreDoc('containers', target);
+      return updated;
+    });
   };
 
   const deleteContainer = (id: string) => {
     setContainers(prev => prev.filter(c => c.id !== id));
+    deleteFirestoreDoc('containers', id);
   };
 
   // Collaborators actions
@@ -202,14 +231,21 @@ export const ModBoxProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       id: `col-${Date.now()}`
     };
     setCollaborators(prev => [newCollab, ...prev]);
+    setFirestoreDoc('collaborators', newCollab);
   };
 
   const updateCollaborator = (id: string, data: Partial<Collaborator>) => {
-    setCollaborators(prev => prev.map(c => c.id === id ? { ...c, ...data } : c));
+    setCollaborators(prev => {
+      const updated = prev.map(c => c.id === id ? { ...c, ...data } : c);
+      const target = updated.find(c => c.id === id);
+      if (target) setFirestoreDoc('collaborators', target);
+      return updated;
+    });
   };
 
   const deleteCollaborator = (id: string) => {
     setCollaborators(prev => prev.filter(c => c.id !== id));
+    deleteFirestoreDoc('collaborators', id);
   };
 
   // Auth actions
@@ -223,7 +259,12 @@ export const ModBoxProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   };
 
   const changeCollaboratorPin = (id: string, newPin: string) => {
-    setCollaborators(prev => prev.map(c => c.id === id ? { ...c, pin: newPin, mustChangePin: false } : c));
+    setCollaborators(prev => {
+      const updated = prev.map(c => c.id === id ? { ...c, pin: newPin, mustChangePin: false } : c);
+      const target = updated.find(c => c.id === id);
+      if (target) setFirestoreDoc('collaborators', target);
+      return updated;
+    });
   };
 
   // Admin actions
@@ -234,14 +275,21 @@ export const ModBoxProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       createdAt: new Date().toISOString().split('T')[0]
     };
     setAdmins(prev => [...prev, newAdmin]);
+    setFirestoreDoc('admins', newAdmin);
   };
 
   const updateAdmin = (id: string, data: Partial<AdminUser>) => {
-    setAdmins(prev => prev.map(a => a.id === id ? { ...a, ...data } : a));
+    setAdmins(prev => {
+      const updated = prev.map(a => a.id === id ? { ...a, ...data } : a);
+      const target = updated.find(a => a.id === id);
+      if (target) setFirestoreDoc('admins', target);
+      return updated;
+    });
   };
 
   const deleteAdmin = (id: string) => {
     setAdmins(prev => prev.filter(a => a.id !== id));
+    deleteFirestoreDoc('admins', id);
   };
 
   const authenticateAdmin = (adminId: string, pin: string): AdminUser | null => {
@@ -252,7 +300,12 @@ export const ModBoxProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   };
 
   const changeAdminPin = (adminId: string, newPin: string) => {
-    setAdmins(prev => prev.map(a => a.id === adminId ? { ...a, pin: newPin } : a));
+    setAdmins(prev => {
+      const updated = prev.map(a => a.id === adminId ? { ...a, pin: newPin } : a);
+      const target = updated.find(a => a.id === adminId);
+      if (target) setFirestoreDoc('admins', target);
+      return updated;
+    });
   };
 
   // Sales actions
@@ -266,6 +319,7 @@ export const ModBoxProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       createdAt: new Date().toISOString().split('T')[0]
     };
     setSales(prev => [newSale, ...prev]);
+    setFirestoreDoc('sales', newSale);
 
     // Automatically create income cash flow entry if downPayment > 0
     if (data.financials.downPayment > 0) {
@@ -280,45 +334,65 @@ export const ModBoxProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         clientOrSupplier: data.client.name
       };
       setCashFlow(prev => [cfEntry, ...prev]);
+      setFirestoreDoc('cashflow', cfEntry);
     }
   };
 
   const updateSale = (id: string, data: Partial<SaleOrder>) => {
-    setSales(prev => prev.map(s => s.id === id ? { ...s, ...data } : s));
+    setSales(prev => {
+      const updated = prev.map(s => s.id === id ? { ...s, ...data } : s);
+      const target = updated.find(s => s.id === id);
+      if (target) setFirestoreDoc('sales', target);
+      return updated;
+    });
   };
 
   const updateSaleStatus = (id: string, status: ProductionStatus) => {
-    setSales(prev => prev.map(s => {
-      if (s.id === id) {
-        // If moved to completed, update collaborator counts
-        if (status === 'concluido' && s.status !== 'concluido') {
-          setCollaborators(cols => cols.map(c => {
-            if (s.assignedCollaboratorIds.includes(c.id)) {
-              return { ...c, completedInstallations: c.completedInstallations + 1, status: 'disponivel' };
-            }
-            return c;
-          }));
+    setSales(prev => {
+      const updated = prev.map(s => {
+        if (s.id === id) {
+          if (status === 'concluido' && s.status !== 'concluido') {
+            setCollaborators(cols => {
+              const updatedCols = cols.map(c => {
+                if (s.assignedCollaboratorIds.includes(c.id)) {
+                  const uc: Collaborator = { ...c, completedInstallations: c.completedInstallations + 1, status: 'disponivel' };
+                  setFirestoreDoc('collaborators', uc);
+                  return uc;
+                }
+                return c;
+              });
+              return updatedCols;
+            });
+          }
+          const us = { ...s, status };
+          setFirestoreDoc('sales', us);
+          return us;
         }
-        return { ...s, status };
-      }
-      return s;
-    }));
+        return s;
+      });
+      return updated;
+    });
   };
 
   const toggleChecklistItem = (saleId: string, itemKey: string) => {
-    setSales(prev => prev.map(s => {
-      if (s.id === saleId) {
-        const currentChecklist = s.checklist || {};
-        return {
-          ...s,
-          checklist: {
-            ...currentChecklist,
-            [itemKey]: !currentChecklist[itemKey]
-          }
-        };
-      }
-      return s;
-    }));
+    setSales(prev => {
+      const updated = prev.map(s => {
+        if (s.id === saleId) {
+          const currentChecklist = s.checklist || {};
+          const us = {
+            ...s,
+            checklist: {
+              ...currentChecklist,
+              [itemKey]: !currentChecklist[itemKey]
+            }
+          };
+          setFirestoreDoc('sales', us);
+          return us;
+        }
+        return s;
+      });
+      return updated;
+    });
   };
 
   const addNoteToSale = (saleId: string, noteText: string, authorName: string) => {
@@ -328,19 +402,25 @@ export const ModBoxProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       timestamp: new Date().toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' }),
       text: noteText
     };
-    setSales(prev => prev.map(s => {
-      if (s.id === saleId) {
-        return {
-          ...s,
-          notes: [newNote, ...(s.notes || [])]
-        };
-      }
-      return s;
-    }));
+    setSales(prev => {
+      const updated = prev.map(s => {
+        if (s.id === saleId) {
+          const us = {
+            ...s,
+            notes: [newNote, ...(s.notes || [])]
+          };
+          setFirestoreDoc('sales', us);
+          return us;
+        }
+        return s;
+      });
+      return updated;
+    });
   };
 
   const deleteSale = (id: string) => {
     setSales(prev => prev.filter(s => s.id !== id));
+    deleteFirestoreDoc('sales', id);
   };
 
   // Cashflow actions
@@ -350,10 +430,12 @@ export const ModBoxProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       id: `cf-${Date.now()}`
     };
     setCashFlow(prev => [newEntry, ...prev]);
+    setFirestoreDoc('cashflow', newEntry);
   };
 
   const deleteCashFlowEntry = (id: string) => {
     setCashFlow(prev => prev.filter(c => c.id !== id));
+    deleteFirestoreDoc('cashflow', id);
   };
 
   const resetToDemoData = () => {
