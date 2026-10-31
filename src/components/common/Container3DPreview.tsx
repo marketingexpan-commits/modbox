@@ -26,28 +26,27 @@ export const Container3DPreview: React.FC<Container3DPreviewProps> = ({
 
 
   return (
-    <div className="bg-dark-900 border border-gold-500/30 rounded-2xl p-5 overflow-hidden relative">
-      {/* Top Controls */}
-      <div className="flex items-center justify-between mb-4 relative z-10">
-        <div className="flex items-center gap-2">
-          <div className="p-1.5 rounded-lg bg-gold-500/15 text-gold-500 border border-gold-500/30">
+    <div className="bg-dark-900 border border-gold-500/30 rounded-2xl p-4 sm:p-5 overflow-hidden relative">
+      {/* Top Controls: Info horizontal above buttons */}
+      <div className="flex flex-col gap-3 mb-4 relative z-10">
+        {/* Horizontal container info */}
+        <div className="flex items-center gap-2.5 flex-wrap">
+          <div className="p-1.5 rounded-lg bg-gold-500/15 text-gold-500 border border-gold-500/30 shrink-0">
             <Box className="w-4 h-4" />
           </div>
-          <div>
-            <h4 className="text-sm font-semibold text-white tracking-wide">{name}</h4>
-            {category && (
-              <span className="text-[11px] text-gold-500 font-mono uppercase tracking-wider">
-                Categoria: {category}
-              </span>
-            )}
-          </div>
+          <h4 className="text-sm font-semibold text-white tracking-wide">{name}</h4>
+          {category && (
+            <span className="text-[11px] text-gold-500 font-mono uppercase tracking-wider bg-gold-500/10 px-2 py-0.5 rounded border border-gold-500/20">
+              Categoria: {category}
+            </span>
+          )}
         </div>
 
-        {/* View switcher buttons */}
-        <div className="flex items-center gap-1 bg-dark-800 p-1 rounded-lg border border-white/5 text-xs">
+        {/* View switcher buttons below info */}
+        <div className="flex items-center gap-1 bg-dark-800 p-1 rounded-lg border border-white/5 text-xs w-full sm:w-fit">
           <button
             onClick={() => setViewAngle('iso')}
-            className={`px-2.5 py-1 rounded transition-colors ${
+            className={`flex-1 sm:flex-initial px-3 py-1.5 rounded transition-colors text-center font-medium ${
               viewAngle === 'iso' ? 'bg-gold-500 text-black font-bold' : 'text-gray-400 hover:text-white'
             }`}
           >
@@ -55,7 +54,7 @@ export const Container3DPreview: React.FC<Container3DPreviewProps> = ({
           </button>
           <button
             onClick={() => setViewAngle('front')}
-            className={`px-2.5 py-1 rounded transition-colors ${
+            className={`flex-1 sm:flex-initial px-3 py-1.5 rounded transition-colors text-center font-medium ${
               viewAngle === 'front' ? 'bg-gold-500 text-black font-bold' : 'text-gray-400 hover:text-white'
             }`}
           >
@@ -63,7 +62,7 @@ export const Container3DPreview: React.FC<Container3DPreviewProps> = ({
           </button>
           <button
             onClick={() => setViewAngle('side')}
-            className={`px-2.5 py-1 rounded transition-colors ${
+            className={`flex-1 sm:flex-initial px-3 py-1.5 rounded transition-colors text-center font-medium ${
               viewAngle === 'side' ? 'bg-gold-500 text-black font-bold' : 'text-gray-400 hover:text-white'
             }`}
           >
@@ -319,7 +318,7 @@ export const Container3DPreview: React.FC<Container3DPreviewProps> = ({
 
       {/* Dimensional Specs Pill Bar */}
       {showDetails && (
-        <div className="grid grid-cols-4 gap-2 mt-4 pt-4 border-t border-white/5 text-center">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mt-4 pt-4 border-t border-white/5 text-center">
           <div className="bg-dark-850 p-2 rounded-xl border border-white/5">
             <span className="text-[10px] text-gray-400 uppercase tracking-wider block">Comprimento</span>
             <span className="text-sm font-bold text-white font-mono">{length.toFixed(2)} m</span>
@@ -341,5 +340,6 @@ export const Container3DPreview: React.FC<Container3DPreviewProps> = ({
     </div>
   );
 };
+
 
 

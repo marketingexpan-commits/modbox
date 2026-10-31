@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+﻿import React, { useState } from 'react';
 import { 
   Box, 
   Plus, 
@@ -597,3 +597,4 @@ export const ContainersManager: React.FC<ContainersManagerProps> = ({ readOnly =
     </div>
   );
 };
+
