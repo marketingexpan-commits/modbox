@@ -1,4 +1,4 @@
-﻿import React, { useState } from 'react';
+import React, { useState } from 'react';
 import { 
   DollarSign, 
   TrendingUp, 
@@ -23,7 +23,7 @@ export const CashFlowManager: React.FC = () => {
   const { cashFlow, addCashFlowEntry, deleteCashFlowEntry, stats, sales } = useModBox();
 
   const [searchTerm, setSearchTerm] = useState('');
-  const [typeFilter, setTypeFilter] = useState<'todos' | 'receita' | 'despesa'>('todos');
+  const [typeFilter, setTypeFilter] = useState<'todos' | 'receita' | 'despesa' | 'obras'>('todos');
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   // Form State
@@ -32,20 +32,24 @@ export const CashFlowManager: React.FC = () => {
   const [amount, setAmount] = useState<number>(5000);
   const [description, setDescription] = useState('');
   const [clientOrSupplier, setClientOrSupplier] = useState('');
+  const [saleOrderId, setSaleOrderId] = useState('');
   const [date, setDate] = useState<string>(new Date().toISOString().split('T')[0]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    const selectedSale = sales.find(s => s.id === saleOrderId);
     addCashFlowEntry({
       type,
       category,
       amount: Number(amount),
       description,
-      clientOrSupplier,
+      clientOrSupplier: clientOrSupplier || (selectedSale ? selectedSale.client.name : undefined),
+      saleOrderId: saleOrderId || undefined,
       date
     });
     setDescription('');
     setClientOrSupplier('');
+    setSaleOrderId('');
     setAmount(1000);
     setIsModalOpen(false);
   };
@@ -84,7 +88,11 @@ export const CashFlowManager: React.FC = () => {
   const filteredEntries = cashFlow.filter(item => {
     const matchesSearch = item.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
                           (item.clientOrSupplier && item.clientOrSupplier.toLowerCase().includes(searchTerm.toLowerCase()));
-    const matchesType = typeFilter === 'todos' || item.type === typeFilter;
+    const matchesType = typeFilter === 'todos' 
+      ? true 
+      : typeFilter === 'obras' 
+        ? Boolean(item.saleOrderId) 
+        : item.type === typeFilter;
     return matchesSearch && matchesType;
   });
 
@@ -340,6 +348,12 @@ export const CashFlowManager: React.FC = () => {
               >
                 Despesas
               </button>
+              <button
+                onClick={() => setTypeFilter('obras')}
+                className={`px-2.5 py-1 rounded-lg ${typeFilter === 'obras' ? 'bg-gold-500 text-black font-bold' : 'text-gray-400 hover:text-white'}`}
+              >
+                Custos de Obras ({cashFlow.filter(c => Boolean(c.saleOrderId)).length})
+              </button>
             </div>
           </div>
         </div>
@@ -376,8 +390,15 @@ export const CashFlowManager: React.FC = () => {
                   <td className="py-3 px-3 text-gray-300">
                     {categoryLabels[entry.category] || entry.category}
                   </td>
-                  <td className="py-3 px-3 text-white font-medium max-w-xs truncate">
-                    {entry.description}
+                  <td className="py-3 px-3 text-white font-medium max-w-xs">
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      {entry.saleOrderId && (
+                        <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-gold-500/15 text-gold-400 border border-gold-500/30 whitespace-nowrap">
+                          Obra
+                        </span>
+                      )}
+                      <span className="truncate">{entry.description}</span>
+                    </div>
                   </td>
                   <td className="py-3 px-3 text-gray-400">
                     {entry.clientOrSupplier || '—'}
@@ -489,6 +510,28 @@ export const CashFlowManager: React.FC = () => {
               onChange={e => setDescription(e.target.value)}
               className="w-full bg-dark-950 border border-white/10 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-gold-500 text-xs"
             />
+          </div>
+
+          <div>
+            <label className="text-gray-300 block mb-1 font-semibold">Vincular a uma Obra / Pedido (Opcional)</label>
+            <select
+              value={saleOrderId}
+              onChange={e => {
+                setSaleOrderId(e.target.value);
+                const s = sales.find(sl => sl.id === e.target.value);
+                if (s && !clientOrSupplier) {
+                  setClientOrSupplier(s.client.name);
+                }
+              }}
+              className="w-full bg-dark-950 border border-white/10 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-gold-500 cursor-pointer text-xs"
+            >
+              <option value="">Nenhuma Obra (Despesa / Receita Geral da Empresa)</option>
+              {sales.map(s => (
+                <option key={s.id} value={s.id}>
+                  {s.orderNumber} — {s.client.name} ({s.containerName})
+                </option>
+              ))}
+            </select>
           </div>
 
           <div>

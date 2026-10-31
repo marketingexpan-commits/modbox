@@ -346,6 +346,35 @@ export const INITIAL_SALES: SaleOrder[] = [
         timestamp: '2026-10-27 13:40',
         text: 'Fixação das sapatas metálicas ancoradas com chumbadores químicos parabolt. Estrutura 100% rígida e segura.'
       }
+    ],
+    expenses: [
+      {
+        id: 'exp-01',
+        description: '100 Parafusos autobrocantes e arruelas de vedação EPDM',
+        amount: 180,
+        category: 'serralheria',
+        date: '2026-10-18',
+        notes: 'Comprado na Casa do Parafuso para fixação do telhado e vedação',
+        cashFlowEntryId: 'cf-exp-01'
+      },
+      {
+        id: 'exp-02',
+        description: 'Barras de ferro estrutural 50x50mm e cantoneiras',
+        amount: 850,
+        category: 'materia_prima',
+        date: '2026-10-20',
+        notes: 'Aço adicional para reforço dos vãos de esquadrias',
+        cashFlowEntryId: 'cf-exp-02'
+      },
+      {
+        id: 'exp-03',
+        description: 'Tinta esmalte sintético e primer antiferrugem',
+        amount: 320,
+        category: 'outros',
+        date: '2026-10-22',
+        notes: 'Acabamento das áreas soldadas',
+        cashFlowEntryId: 'cf-exp-03'
+      }
     ]
   },
   {
@@ -693,6 +722,36 @@ export const INITIAL_CASH_FLOW: CashFlowEntry[] = [
     description: 'Folha de pagamento de diárias operacionais e montagens técnicas de campo',
     date: '2026-10-25',
     clientOrSupplier: 'Equipe Operacional ModBox'
+  },
+  {
+    id: 'cf-exp-01',
+    type: 'despesa',
+    category: 'serralheria',
+    amount: 180,
+    description: '[Obra: Studio Arquitetura Nova Era] 100 Parafusos autobrocantes e arruelas de vedação EPDM',
+    date: '2026-10-18',
+    saleOrderId: 'sale-001',
+    clientOrSupplier: 'Studio Arquitetura Nova Era'
+  },
+  {
+    id: 'cf-exp-02',
+    type: 'despesa',
+    category: 'materia_prima',
+    amount: 850,
+    description: '[Obra: Studio Arquitetura Nova Era] Barras de ferro estrutural 50x50mm e cantoneiras',
+    date: '2026-10-20',
+    saleOrderId: 'sale-001',
+    clientOrSupplier: 'Studio Arquitetura Nova Era'
+  },
+  {
+    id: 'cf-exp-03',
+    type: 'despesa',
+    category: 'outros',
+    amount: 320,
+    description: '[Obra: Studio Arquitetura Nova Era] Tinta esmalte sintético e primer antiferrugem',
+    date: '2026-10-22',
+    saleOrderId: 'sale-001',
+    clientOrSupplier: 'Studio Arquitetura Nova Era'
   }
 ];
 

@@ -91,6 +91,17 @@ export interface OperationalNote {
   text: string;
 }
 
+export interface ProjectExpense {
+  id: string;
+  description: string;
+  amount: number;
+  category: CashFlowCategory;
+  date: string;
+  notes?: string;
+  cashFlowEntryId?: string;
+  createdBy?: string;
+}
+
 export interface SaleOrder {
   id: string;
   orderNumber: string; // MBX-001
@@ -125,6 +136,7 @@ export interface SaleOrder {
   status: ProductionStatus;
   checklist: Record<string, boolean>;
   notes: OperationalNote[];
+  expenses?: ProjectExpense[];
 }
 
 export type CashFlowType = 'receita' | 'despesa';

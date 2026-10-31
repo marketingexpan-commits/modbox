@@ -7,7 +7,8 @@ import {
   CashFlowEntry, 
   ProductionStatus,
   OperationalNote,
-  AdminUser
+  AdminUser,
+  ProjectExpense
 } from '../types';
 import { 
   INITIAL_CONTAINERS, 
@@ -52,6 +53,8 @@ interface ModBoxContextType {
   toggleChecklistItem: (saleId: string, itemKey: string) => void;
   addNoteToSale: (saleId: string, noteText: string, authorName: string) => void;
   deleteSale: (id: string) => void;
+  addProjectExpense: (saleId: string, expense: Omit<ProjectExpense, 'id'>) => void;
+  deleteProjectExpense: (saleId: string, expenseId: string) => void;
 
   cashFlow: CashFlowEntry[];
   addCashFlowEntry: (entry: Omit<CashFlowEntry, 'id'>) => void;
@@ -423,6 +426,79 @@ export const ModBoxProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     deleteFirestoreDoc('sales', id);
   };
 
+  // Centro de Custos por Obra / Pedido
+  const addProjectExpense = (saleId: string, expenseData: Omit<ProjectExpense, 'id'>) => {
+    const targetSale = sales.find(s => s.id === saleId);
+    if (!targetSale) return;
+
+    const expenseId = `exp-${Date.now()}`;
+    const cfId = `cf-exp-${Date.now()}`;
+
+    // 1. Gera lançamento automático no Fluxo de Caixa da ModBox
+    const cfEntry: CashFlowEntry = {
+      id: cfId,
+      type: 'despesa',
+      category: expenseData.category,
+      amount: Number(expenseData.amount),
+      description: `[Obra: ${targetSale.client.name}] ${expenseData.description}`,
+      clientOrSupplier: targetSale.client.name,
+      date: expenseData.date,
+      saleOrderId: targetSale.id
+    };
+
+    setCashFlow(prev => [cfEntry, ...prev]);
+    setFirestoreDoc('cashflow', cfEntry);
+
+    // 2. Vincula a despesa à Obra / Pedido
+    const newExpense: ProjectExpense = {
+      ...expenseData,
+      amount: Number(expenseData.amount),
+      id: expenseId,
+      cashFlowEntryId: cfId
+    };
+
+    setSales(prev => {
+      const updated = prev.map(s => {
+        if (s.id === saleId) {
+          const us = {
+            ...s,
+            expenses: [newExpense, ...(s.expenses || [])]
+          };
+          setFirestoreDoc('sales', us);
+          return us;
+        }
+        return s;
+      });
+      return updated;
+    });
+  };
+
+  const deleteProjectExpense = (saleId: string, expenseId: string) => {
+    const targetSale = sales.find(s => s.id === saleId);
+    if (!targetSale) return;
+
+    const expenseToDelete = (targetSale.expenses || []).find(e => e.id === expenseId);
+    if (expenseToDelete?.cashFlowEntryId) {
+      setCashFlow(prev => prev.filter(c => c.id !== expenseToDelete.cashFlowEntryId));
+      deleteFirestoreDoc('cashflow', expenseToDelete.cashFlowEntryId);
+    }
+
+    setSales(prev => {
+      const updated = prev.map(s => {
+        if (s.id === saleId) {
+          const us = {
+            ...s,
+            expenses: (s.expenses || []).filter(e => e.id !== expenseId)
+          };
+          setFirestoreDoc('sales', us);
+          return us;
+        }
+        return s;
+      });
+      return updated;
+    });
+  };
+
   // Cashflow actions
   const addCashFlowEntry = (entry: Omit<CashFlowEntry, 'id'>) => {
     const newEntry: CashFlowEntry = {
@@ -507,6 +583,8 @@ export const ModBoxProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       toggleChecklistItem,
       addNoteToSale,
       deleteSale,
+      addProjectExpense,
+      deleteProjectExpense,
       cashFlow,
       addCashFlowEntry,
       deleteCashFlowEntry,
