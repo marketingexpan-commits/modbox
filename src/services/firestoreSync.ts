@@ -9,9 +9,14 @@ import {
 } from 'firebase/firestore';
 import { db } from './firebase';
 
+// Tracks which collections have already been seeded in this session.
+// This prevents re-seeding when the user intentionally deletes all items.
+const seededCollections = new Set<string>();
+
 /**
  * Subscribes to a Firestore collection with real-time updates.
- * If the collection is completely empty on first connection, seeds it with initialData.
+ * Seeds with initialData ONLY on the very first time the collection is found empty.
+ * After the user explicitly empties a collection, it will remain empty.
  */
 export function subscribeToCollection<T extends { id: string }>(
   collectionName: string,
@@ -20,10 +25,12 @@ export function subscribeToCollection<T extends { id: string }>(
 ): () => void {
   const colRef = collection(db, collectionName);
 
-  // Check if seeding is needed
+  // Check if seeding is needed (only once per session per collection)
   getDocs(colRef)
     .then((snapshot: any) => {
-      if (snapshot.empty && initialData.length > 0) {
+      if (snapshot.empty && initialData.length > 0 && !seededCollections.has(collectionName)) {
+        // Mark as seeded immediately so concurrent calls don't re-seed
+        seededCollections.add(collectionName);
         const batch = writeBatch(db);
         initialData.forEach((item) => {
           const docRef = doc(colRef, item.id);
@@ -32,20 +39,22 @@ export function subscribeToCollection<T extends { id: string }>(
         batch.commit().catch((err: any) => {
           console.warn(`[Firestore] Could not seed ${collectionName}:`, err);
         });
+      } else if (!snapshot.empty) {
+        // Collection already has data — mark as seeded so we never overwrite
+        seededCollections.add(collectionName);
       }
     })
     .catch((err: any) => {
       console.warn(`[Firestore] Initial check failed for ${collectionName}:`, err);
     });
 
-  // Real-time listener
+  // Real-time listener — updates state whenever Firestore changes (including deletions)
   const unsubscribe = onSnapshot(
     colRef,
     (snapshot: any) => {
-      if (!snapshot.empty) {
-        const items = snapshot.docs.map((docSnap: any) => docSnap.data() as T);
-        onUpdate(items);
-      }
+      // Always update local state, even when the collection becomes empty
+      const items = snapshot.docs.map((docSnap: any) => docSnap.data() as T);
+      onUpdate(items);
     },
     (error: any) => {
       console.warn(`[Firestore] Listener error on ${collectionName}:`, error);
