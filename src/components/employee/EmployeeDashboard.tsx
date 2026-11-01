@@ -490,12 +490,12 @@ export const EmployeeDashboard: React.FC = () => {
                     <span>Fotos da Obra</span>
                   </span>
                   <span className="text-[10px] text-gray-500">
-                    {(sale.photos || []).length}/5 fotos
+                    {(sale.photos || []).length}/6 fotos
                   </span>
                 </div>
 
                 {/* Upload buttons */}
-                {(sale.photos || []).length < 5 && (
+                {(sale.photos || []).length < 6 && (
                   <div className="space-y-2">
                     <div className="flex gap-2">
                       <label className="flex-1 flex items-center justify-center gap-1.5 bg-gold-500 hover:bg-gold-600 text-black font-bold py-2 px-3 rounded-xl text-xs transition-colors cursor-pointer">
@@ -576,13 +576,13 @@ export const EmployeeDashboard: React.FC = () => {
                   </div>
                 )}
 
-                {(sale.photos || []).length >= 5 && (
-                  <p className="text-xs text-amber-400 font-medium">Limite de 5 fotos atingido para este projeto.</p>
+                {(sale.photos || []).length >= 6 && (
+                  <p className="text-xs text-amber-400 font-medium">Limite de 6 fotos atingido para este projeto.</p>
                 )}
 
                 {/* Thumbnails grid */}
                 {(sale.photos || []).length > 0 && (
-                  <div className="grid grid-cols-3 sm:grid-cols-5 gap-2 pt-1">
+                  <div className="grid grid-cols-3 sm:grid-cols-6 gap-2 pt-1">
                     {(sale.photos || []).map(photo => (
                       <div
                         key={photo.id}

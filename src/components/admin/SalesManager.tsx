@@ -619,7 +619,7 @@ export const SalesManager: React.FC = () => {
                       Galeria de Fotos — {(sale.photos || []).length} foto{(sale.photos || []).length !== 1 ? 's' : ''}
                     </span>
                   </div>
-                  <div className="grid grid-cols-3 sm:grid-cols-5 gap-2">
+                  <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
                     {(sale.photos || []).map(photo => (
                       <div key={photo.id} className="relative group">
                         <img
