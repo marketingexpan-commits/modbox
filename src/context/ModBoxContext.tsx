@@ -8,7 +8,8 @@ import {
   ProductionStatus,
   OperationalNote,
   AdminUser,
-  ProjectExpense
+  ProjectExpense,
+  ProjectPhoto
 } from '../types';
 import { 
   INITIAL_CONTAINERS, 
@@ -55,6 +56,8 @@ interface ModBoxContextType {
   deleteSale: (id: string) => void;
   addProjectExpense: (saleId: string, expense: Omit<ProjectExpense, 'id'>) => void;
   deleteProjectExpense: (saleId: string, expenseId: string) => void;
+  addProjectPhoto: (saleId: string, photo: Omit<ProjectPhoto, 'id'>) => void;
+  deleteProjectPhoto: (saleId: string, photoId: string, storagePath: string) => void;
 
   cashFlow: CashFlowEntry[];
   addCashFlowEntry: (entry: Omit<CashFlowEntry, 'id'>) => void;
@@ -530,6 +533,40 @@ export const ModBoxProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     deleteFirestoreDoc('cashflow', id);
   };
 
+  // Project Photos actions
+  const addProjectPhoto = (saleId: string, photoData: Omit<ProjectPhoto, 'id'>) => {
+    const newPhoto: ProjectPhoto = { ...photoData, id: `photo-${Date.now()}` };
+    setSales(prev => {
+      const updated = prev.map(s => {
+        if (s.id === saleId) {
+          const us = { ...s, photos: [newPhoto, ...(s.photos || [])] };
+          setFirestoreDoc('sales', us);
+          return us;
+        }
+        return s;
+      });
+      return updated;
+    });
+  };
+
+  const deleteProjectPhoto = (saleId: string, photoId: string, storagePath: string) => {
+    setSales(prev => {
+      const updated = prev.map(s => {
+        if (s.id === saleId) {
+          const us = { ...s, photos: (s.photos || []).filter(p => p.id !== photoId) };
+          setFirestoreDoc('sales', us);
+          return us;
+        }
+        return s;
+      });
+      return updated;
+    });
+    // Fire-and-forget Storage deletion
+    import('../services/firebaseStorage').then(({ deleteStoragePhoto }) => {
+      deleteStoragePhoto(storagePath).catch(console.warn);
+    });
+  };
+
   const resetToDemoData = () => {
     localStorage.removeItem(`${STORAGE_KEY}_containers`);
     localStorage.removeItem(`${STORAGE_KEY}_collaborators`);
@@ -601,6 +638,8 @@ export const ModBoxProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       deleteSale,
       addProjectExpense,
       deleteProjectExpense,
+      addProjectPhoto,
+      deleteProjectPhoto,
       cashFlow,
       addCashFlowEntry,
       deleteCashFlowEntry,

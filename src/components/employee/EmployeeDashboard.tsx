@@ -10,10 +10,13 @@ import {
   Navigation, 
   MessageSquare, 
   ArrowRight, 
-  Send
+  Send,
+  Camera,
+  Image as ImageIcon,
+  X
 } from 'lucide-react';
 import { useModBox } from '../../context/ModBoxContext';
-import { SaleOrder } from '../../types';
+import { SaleOrder, ProjectPhoto } from '../../types';
 import { PRODUCTION_STAGES_CONFIG } from '../../data/mockData';
 
 export const EmployeeDashboard: React.FC = () => {
@@ -25,11 +28,20 @@ export const EmployeeDashboard: React.FC = () => {
     updateSaleStatus, 
     toggleChecklistItem, 
     addNoteToSale,
+    addProjectPhoto,
     containers
   } = useModBox();
 
   const [filterMode, setFilterMode] = useState<'minhas' | 'todas'>('minhas');
   const [noteInput, setNoteInput] = useState('');
+  const [pendingPhoto, setPendingPhoto] = useState<{
+    saleId: string;
+    file: File;
+    previewUrl: string;
+    caption: string;
+  } | null>(null);
+  const [uploadProgress, setUploadProgress] = useState<number | null>(null);
+  const [lightboxPhoto, setLightboxPhoto] = useState<ProjectPhoto | null>(null);
 
   const activeCollab = collaborators.find(c => c.id === activeCollaboratorId);
 
@@ -71,6 +83,40 @@ export const EmployeeDashboard: React.FC = () => {
       `${sale.installationAddress.street}, ${sale.installationAddress.number}, ${sale.installationAddress.city} - ${sale.installationAddress.state}`
     );
     window.open(`https://waze.com/ul?q=${query}`, '_blank');
+  };
+
+  const handlePhotoSelect = (saleId: string, file: File) => {
+    if (pendingPhoto) URL.revokeObjectURL(pendingPhoto.previewUrl);
+    const previewUrl = URL.createObjectURL(file);
+    setPendingPhoto({ saleId, file, previewUrl, caption: '' });
+    setUploadProgress(null);
+  };
+
+  const handleUploadPhoto = async (saleId: string) => {
+    if (!pendingPhoto || pendingPhoto.saleId !== saleId) return;
+    const author = activeCollab ? activeCollab.name : 'Colaborador';
+    try {
+      setUploadProgress(10);
+      const { uploadProjectPhoto } = await import('../../services/firebaseStorage');
+      const { url, storagePath } = await uploadProjectPhoto(
+        saleId,
+        pendingPhoto.file,
+        (pct) => setUploadProgress(pct)
+      );
+      addProjectPhoto(saleId, {
+        url,
+        storagePath,
+        caption: pendingPhoto.caption,
+        uploadedBy: author,
+        uploadedAt: new Date().toISOString(),
+      });
+      URL.revokeObjectURL(pendingPhoto.previewUrl);
+      setPendingPhoto(null);
+      setUploadProgress(null);
+    } catch (err: any) {
+      alert(err.message || 'Erro ao enviar foto. Tente novamente.');
+      setUploadProgress(null);
+    }
   };
 
   return (
@@ -435,6 +481,129 @@ export const EmployeeDashboard: React.FC = () => {
                   </div>
                 )}
               </div>
+
+              {/* Row 6: Fotos da Obra */}
+              <div className="bg-dark-900 p-4 rounded-xl border border-white/5 space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold text-gold-500 uppercase tracking-wider flex items-center gap-1.5">
+                    <Camera className="w-4 h-4 text-gold-500" />
+                    <span>Fotos da Obra</span>
+                  </span>
+                  <span className="text-[10px] text-gray-500">
+                    {(sale.photos || []).length}/5 fotos
+                  </span>
+                </div>
+
+                {/* Upload buttons */}
+                {(sale.photos || []).length < 5 && (
+                  <div className="space-y-2">
+                    <div className="flex gap-2">
+                      <label className="flex-1 flex items-center justify-center gap-1.5 bg-gold-500 hover:bg-gold-600 text-black font-bold py-2 px-3 rounded-xl text-xs transition-colors cursor-pointer">
+                        <Camera className="w-3.5 h-3.5" />
+                        <span>Tirar Foto</span>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          capture="environment"
+                          className="hidden"
+                          onChange={e => {
+                            const file = e.target.files?.[0];
+                            if (file) handlePhotoSelect(sale.id, file);
+                            e.target.value = '';
+                          }}
+                        />
+                      </label>
+                      <label className="flex-1 flex items-center justify-center gap-1.5 bg-dark-800 hover:bg-dark-750 text-white font-semibold py-2 px-3 rounded-xl text-xs border border-white/10 transition-colors cursor-pointer">
+                        <ImageIcon className="w-3.5 h-3.5 text-gold-400" />
+                        <span>Da Galeria</span>
+                        <input
+                          type="file"
+                          accept="image/*,image/heic"
+                          className="hidden"
+                          onChange={e => {
+                            const file = e.target.files?.[0];
+                            if (file) handlePhotoSelect(sale.id, file);
+                            e.target.value = '';
+                          }}
+                        />
+                      </label>
+                    </div>
+
+                    {/* Pending photo preview */}
+                    {pendingPhoto?.saleId === sale.id && (
+                      <div className="space-y-2 bg-dark-950 p-3 rounded-xl border border-gold-500/30">
+                        <img
+                          src={pendingPhoto.previewUrl}
+                          alt="preview"
+                          className="w-full max-h-48 object-cover rounded-lg"
+                        />
+                        <input
+                          type="text"
+                          placeholder="Legenda (opcional)"
+                          value={pendingPhoto.caption}
+                          onChange={e => setPendingPhoto(prev => prev ? { ...prev, caption: e.target.value } : null)}
+                          className="w-full bg-dark-800 border border-white/10 rounded-xl px-3 py-1.5 text-xs text-white focus:outline-none focus:border-gold-500"
+                        />
+                        {uploadProgress !== null && (
+                          <div className="w-full bg-dark-800 rounded-full h-1.5 overflow-hidden">
+                            <div
+                              className="bg-gold-500 h-1.5 rounded-full transition-all duration-300"
+                              style={{ width: `${uploadProgress}%` }}
+                            />
+                          </div>
+                        )}
+                        <div className="flex gap-2">
+                          <button
+                            onClick={() => handleUploadPhoto(sale.id)}
+                            disabled={uploadProgress !== null}
+                            className="flex-1 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white font-bold py-1.5 rounded-xl text-xs transition-colors"
+                          >
+                            {uploadProgress !== null ? `Enviando... ${uploadProgress}%` : 'Enviar Foto'}
+                          </button>
+                          <button
+                            onClick={() => {
+                              URL.revokeObjectURL(pendingPhoto.previewUrl);
+                              setPendingPhoto(null);
+                              setUploadProgress(null);
+                            }}
+                            className="px-3 bg-dark-800 hover:bg-dark-700 text-gray-400 font-bold py-1.5 rounded-xl text-xs border border-white/10 transition-colors"
+                          >
+                            Cancelar
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {(sale.photos || []).length >= 5 && (
+                  <p className="text-xs text-amber-400 font-medium">Limite de 5 fotos atingido para este projeto.</p>
+                )}
+
+                {/* Thumbnails grid */}
+                {(sale.photos || []).length > 0 && (
+                  <div className="grid grid-cols-3 sm:grid-cols-5 gap-2 pt-1">
+                    {(sale.photos || []).map(photo => (
+                      <div
+                        key={photo.id}
+                        className="relative group cursor-pointer"
+                        onClick={() => setLightboxPhoto(photo)}
+                      >
+                        <img
+                          src={photo.url}
+                          alt={photo.caption || 'Foto da obra'}
+                          className="w-full h-20 object-cover rounded-lg border border-white/10 group-hover:border-gold-500/50 transition-all"
+                        />
+                        {photo.caption && (
+                          <div className="absolute bottom-0 left-0 right-0 bg-black/70 text-[9px] text-white p-1 rounded-b-lg truncate">
+                            {photo.caption}
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
           );
         })}
@@ -451,6 +620,32 @@ export const EmployeeDashboard: React.FC = () => {
           </div>
         )}
       </div>
+
+      {/* Lightbox */}
+      {lightboxPhoto && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/92 p-4"
+          onClick={() => setLightboxPhoto(null)}
+        >
+          <div className="relative max-w-2xl w-full" onClick={e => e.stopPropagation()}>
+            <img
+              src={lightboxPhoto.url}
+              alt={lightboxPhoto.caption || 'Foto da obra'}
+              className="w-full rounded-2xl max-h-[75vh] object-contain shadow-2xl"
+            />
+            <div className="mt-3 flex items-center justify-between text-xs text-gray-400 px-1">
+              <span className="text-white font-medium">{lightboxPhoto.caption || 'Sem legenda'}</span>
+              <span>{lightboxPhoto.uploadedBy} • {new Date(lightboxPhoto.uploadedAt).toLocaleDateString('pt-BR')}</span>
+            </div>
+            <button
+              onClick={() => setLightboxPhoto(null)}
+              className="absolute top-3 right-3 w-8 h-8 rounded-full bg-black/60 text-white flex items-center justify-center hover:bg-black/80 transition-colors"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

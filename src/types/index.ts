@@ -113,6 +113,15 @@ export interface OperationalNote {
   text: string;
 }
 
+export interface ProjectPhoto {
+  id: string;
+  url: string;
+  storagePath: string;
+  caption: string;
+  uploadedBy: string;
+  uploadedAt: string;
+}
+
 export interface ProjectExpense {
   id: string;
   description: string;
@@ -164,6 +173,7 @@ export interface SaleOrder {
   checklist: Record<string, boolean>;
   notes: OperationalNote[];
   expenses?: ProjectExpense[];
+  photos?: ProjectPhoto[];
 }
 
 export type CashFlowType = 'receita' | 'despesa';

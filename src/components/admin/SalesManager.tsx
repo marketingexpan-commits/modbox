@@ -19,10 +19,12 @@ import {
   Receipt,
   Coins,
   AlertCircle,
-  HardHat
+  HardHat,
+  Camera,
+  X
 } from 'lucide-react';
 import { useModBox } from '../../context/ModBoxContext';
-import { SaleOrder, ProductionStatus, CashFlowCategory, ProjectExpense, Collaborator } from '../../types';
+import { SaleOrder, ProductionStatus, CashFlowCategory, ProjectExpense, Collaborator, ProjectPhoto } from '../../types';
 import { Modal } from '../common/Modal';
 import { PRODUCTION_STAGES_CONFIG } from '../../data/mockData';
 
@@ -48,7 +50,8 @@ export const SalesManager: React.FC = () => {
     updateSaleStatus, 
     deleteSale,
     addProjectExpense,
-    deleteProjectExpense
+    deleteProjectExpense,
+    deleteProjectPhoto
   } = useModBox();
 
   const [searchTerm, setSearchTerm] = useState('');
@@ -89,6 +92,9 @@ export const SalesManager: React.FC = () => {
   // Centro de Custos da Obra
   const [selectedSaleForCostsId, setSelectedSaleForCostsId] = useState<string | null>(null);
   const selectedSaleForCosts = sales.find(s => s.id === selectedSaleForCostsId) || null;
+
+  // Admin photo lightbox
+  const [adminLightbox, setAdminLightbox] = useState<ProjectPhoto | null>(null);
 
   // Form de Lançamento de Custos na Obra
   const [expenseDesc, setExpenseDesc] = useState('');
@@ -603,6 +609,49 @@ export const SalesManager: React.FC = () => {
                   </div>
                 );
               })()}
+
+              {/* Galeria de Fotos da Obra */}
+              {(sale.photos || []).length > 0 && (
+                <div className="pt-3 border-t border-white/5 space-y-3">
+                  <div className="flex items-center gap-1.5">
+                    <Camera className="w-4 h-4 text-gold-400" />
+                    <span className="text-xs font-bold text-gold-400 uppercase tracking-wider">
+                      Galeria de Fotos — {(sale.photos || []).length} foto{(sale.photos || []).length !== 1 ? 's' : ''}
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-3 sm:grid-cols-5 gap-2">
+                    {(sale.photos || []).map(photo => (
+                      <div key={photo.id} className="relative group">
+                        <img
+                          src={photo.url}
+                          alt={photo.caption || 'Foto da obra'}
+                          className="w-full h-24 object-cover rounded-xl border border-white/10 cursor-pointer hover:border-gold-500/50 transition-all"
+                          onClick={() => setAdminLightbox(photo)}
+                        />
+                        <div className="absolute bottom-0 left-0 right-0 bg-black/70 text-[9px] text-white p-1 rounded-b-xl truncate opacity-0 group-hover:opacity-100 transition-opacity">
+                          {photo.uploadedBy}
+                        </div>
+                        <button
+                          onClick={() => {
+                            if (window.confirm('Excluir esta foto da obra?')) {
+                              deleteProjectPhoto(sale.id, photo.id, photo.storagePath);
+                            }
+                          }}
+                          className="absolute top-1 right-1 w-5 h-5 rounded-full bg-rose-500/80 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-rose-500"
+                          title="Excluir foto"
+                        >
+                          <X className="w-2.5 h-2.5" />
+                        </button>
+                        {photo.caption && (
+                          <div className="text-[9px] text-gray-400 mt-1 truncate px-0.5" title={photo.caption}>
+                            {photo.caption}
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           );
         })}
@@ -1458,6 +1507,40 @@ export const SalesManager: React.FC = () => {
           );
         })()}
       </Modal>
+
+      {/* Admin Photo Lightbox */}
+      {adminLightbox && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/92 p-4"
+          onClick={() => setAdminLightbox(null)}
+        >
+          <div className="relative max-w-3xl w-full" onClick={e => e.stopPropagation()}>
+            <img
+              src={adminLightbox.url}
+              alt={adminLightbox.caption || 'Foto da obra'}
+              className="w-full rounded-2xl max-h-[78vh] object-contain shadow-2xl"
+            />
+            <div className="mt-3 space-y-1 px-1">
+              {adminLightbox.caption && (
+                <p className="text-sm text-white font-medium">{adminLightbox.caption}</p>
+              )}
+              <p className="text-xs text-gray-400">
+                Enviado por{' '}
+                <span className="text-gold-400 font-semibold">{adminLightbox.uploadedBy}</span>{' '}
+                em {new Date(adminLightbox.uploadedAt).toLocaleDateString('pt-BR', {
+                  day: '2-digit', month: 'long', year: 'numeric'
+                })}
+              </p>
+            </div>
+            <button
+              onClick={() => setAdminLightbox(null)}
+              className="absolute top-3 right-3 w-9 h-9 rounded-full bg-black/60 text-white flex items-center justify-center hover:bg-black/80 transition-colors"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
