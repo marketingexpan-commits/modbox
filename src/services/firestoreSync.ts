@@ -66,6 +66,7 @@ export function subscribeToCollection<T extends { id: string }>(
 
 /**
  * Saves or updates a document in Firestore.
+ * Automatically sanitizes the item to remove `undefined` fields, which Firestore rejects.
  */
 export async function setFirestoreDoc<T extends { id: string }>(
   collectionName: string,
@@ -73,7 +74,8 @@ export async function setFirestoreDoc<T extends { id: string }>(
 ): Promise<void> {
   try {
     const docRef = doc(db, collectionName, item.id);
-    await setDoc(docRef, item, { merge: true });
+    const cleanItem = JSON.parse(JSON.stringify(item));
+    await setDoc(docRef, cleanItem, { merge: true });
   } catch (err) {
     console.warn(`[Firestore] Error setting ${collectionName}/${item.id}:`, err);
   }

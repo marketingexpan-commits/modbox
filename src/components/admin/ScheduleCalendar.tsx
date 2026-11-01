@@ -32,20 +32,21 @@ export const ScheduleCalendar: React.FC<ScheduleCalendarProps> = ({
 }) => {
   const { sales, collaborators } = useModBox();
 
-  // Calendar navigation state (defaults to October 2026 to match mock dataset)
-  const [currentDate, setCurrentDate] = useState<Date>(() => {
-    // Check if there are sales in 2026-10 or use current date
-    const octSale = sales.find(s => s.schedule.scheduledDate.startsWith('2026-10'));
-    if (octSale) {
-      return new Date(2026, 9, 1); // Month 9 is October (0-indexed)
-    }
-    return new Date();
-  });
+  const getTodayStr = () => {
+    const now = new Date();
+    const y = now.getFullYear();
+    const m = String(now.getMonth() + 1).padStart(2, '0');
+    const d = String(now.getDate()).padStart(2, '0');
+    return `${y}-${m}-${d}`;
+  };
+
+  // Calendar navigation state (defaults to real current date)
+  const [currentDate, setCurrentDate] = useState<Date>(() => new Date());
 
   const [selectedDayString, setSelectedDayString] = useState<string>(() => {
     // Default to the first active scheduled date in sales or today
     const firstSale = sales.find(s => s.status !== 'concluido' && s.schedule?.scheduledDate);
-    return firstSale?.schedule.scheduledDate || '2026-10-28';
+    return firstSale?.schedule.scheduledDate || getTodayStr();
   });
 
   const [collaboratorFilter, setCollaboratorFilter] = useState<string>('todos');
@@ -68,8 +69,8 @@ export const ScheduleCalendar: React.FC<ScheduleCalendarProps> = ({
   };
 
   const handleGoToToday = () => {
-    setCurrentDate(new Date(2026, 9, 28)); // ModBox demonstration anchor date
-    setSelectedDayString('2026-10-28');
+    setCurrentDate(new Date());
+    setSelectedDayString(getTodayStr());
   };
 
   // Helper to test if a given YYYY-MM-DD falls within a sale's start and end date
@@ -181,7 +182,7 @@ export const ScheduleCalendar: React.FC<ScheduleCalendarProps> = ({
     const daysFullyFree = currentMonthDays.filter(d => d.assignedCollabCount === 0).length;
     
     // Find next fully available date starting from today
-    const todayStr = '2026-10-28';
+    const todayStr = getTodayStr();
     const nextFree = calendarDays.find(d => d.dateStr >= todayStr && d.assignedCollabCount === 0);
 
     // Collaborators currently in field

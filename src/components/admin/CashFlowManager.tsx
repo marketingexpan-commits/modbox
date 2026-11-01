@@ -21,13 +21,6 @@ import { Modal } from '../common/Modal';
 
 type PeriodOption = 'mes_atual' | 'mes_anterior' | 'ano_atual' | 'tudo';
 
-const PERIOD_LABELS: Record<PeriodOption, string> = {
-  mes_atual: 'Outubro / 2026',
-  mes_anterior: 'Setembro / 2026',
-  ano_atual: 'Ano 2026',
-  tudo: 'Acumulado Geral'
-};
-
 export const CashFlowManager: React.FC = () => {
   const { cashFlow, addCashFlowEntry, deleteCashFlowEntry, stats, sales } = useModBox();
 
@@ -35,6 +28,43 @@ export const CashFlowManager: React.FC = () => {
   const [selectedPeriod, setSelectedPeriod] = useState<PeriodOption>('mes_atual');
   const [typeFilter, setTypeFilter] = useState<'todos' | 'receita' | 'despesa' | 'obras'>('todos');
   const [isModalOpen, setIsModalOpen] = useState(false);
+
+  // Períodos dinâmicos calculados com base no calendário real
+  const periodInfo = useMemo(() => {
+    const now = new Date();
+    const curYear = now.getFullYear();
+    const curMonth = now.getMonth();
+
+    const curMonthPrefix = `${curYear}-${String(curMonth + 1).padStart(2, '0')}`;
+    const prevDate = new Date(curYear, curMonth - 1, 1);
+    const prevMonthPrefix = `${prevDate.getFullYear()}-${String(prevDate.getMonth() + 1).padStart(2, '0')}`;
+    const curYearPrefix = `${curYear}`;
+
+    const curMonthName = now.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
+    const prevMonthName = prevDate.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
+
+    const curMonthShort = now.toLocaleDateString('pt-BR', { month: 'short' }).replace('.', '');
+    const prevMonthShort = prevDate.toLocaleDateString('pt-BR', { month: 'short' }).replace('.', '');
+
+    const capitalize = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
+
+    const labels: Record<PeriodOption, string> = {
+      mes_atual: capitalize(curMonthName),
+      mes_anterior: capitalize(prevMonthName),
+      ano_atual: `Ano ${curYear}`,
+      tudo: 'Acumulado Geral'
+    };
+
+    return {
+      curMonthPrefix,
+      prevMonthPrefix,
+      curYearPrefix,
+      labels,
+      currentMonthBtn: `Este Mês (${capitalize(curMonthShort)}/${String(curYear).slice(-2)})`,
+      prevMonthBtn: `Mês Anterior (${capitalize(prevMonthShort)}/${String(prevDate.getFullYear()).slice(-2)})`,
+      yearBtn: `Ano ${curYear}`
+    };
+  }, []);
 
   // Form State
   const [type, setType] = useState<CashFlowType>('receita');
@@ -71,16 +101,16 @@ export const CashFlowManager: React.FC = () => {
   // Filtra as entradas do fluxo de caixa de acordo com o período selecionado
   const periodCashFlow = useMemo(() => {
     if (selectedPeriod === 'mes_atual') {
-      return cashFlow.filter(c => c.date.startsWith('2026-10'));
+      return cashFlow.filter(c => c.date.startsWith(periodInfo.curMonthPrefix));
     }
     if (selectedPeriod === 'mes_anterior') {
-      return cashFlow.filter(c => c.date.startsWith('2026-09'));
+      return cashFlow.filter(c => c.date.startsWith(periodInfo.prevMonthPrefix));
     }
     if (selectedPeriod === 'ano_atual') {
-      return cashFlow.filter(c => c.date.startsWith('2026'));
+      return cashFlow.filter(c => c.date.startsWith(periodInfo.curYearPrefix));
     }
     return cashFlow; // 'tudo'
-  }, [cashFlow, selectedPeriod]);
+  }, [cashFlow, selectedPeriod, periodInfo]);
 
   // Estatísticas calculadas dinamicamente para o período escolhido
   const periodStats = useMemo(() => {
@@ -103,16 +133,32 @@ export const CashFlowManager: React.FC = () => {
     };
   }, [periodCashFlow]);
 
-  // Group monthly data for comparison chart with real October values
+  // Group monthly data for comparison chart with dynamic last 3 months
   const monthlyData = useMemo(() => {
-    const octRevenue = cashFlow.filter(c => c.date.startsWith('2026-10') && c.type === 'receita').reduce((s, c) => s + c.amount, 0);
-    const octCosts = cashFlow.filter(c => c.date.startsWith('2026-10') && c.type === 'despesa').reduce((s, c) => s + c.amount, 0);
+    const now = new Date();
+    const curYear = now.getFullYear();
+    const curMonth = now.getMonth();
+    const capitalize = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 
-    return [
-      { month: 'Agosto/26', receita: 65000, custo: 38000, lucro: 27000 },
-      { month: 'Setembro/26', receita: 112000, custo: 68000, lucro: 44000 },
-      { month: 'Outubro/26', receita: octRevenue, custo: octCosts, lucro: octRevenue - octCosts },
-    ];
+    return [-2, -1, 0].map(offset => {
+      const d = new Date(curYear, curMonth + offset, 1);
+      const prefix = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+      const monthLabel = capitalize(d.toLocaleDateString('pt-BR', { month: 'short' }).replace('.', '')) + '/' + String(d.getFullYear()).slice(-2);
+
+      const receita = cashFlow
+        .filter(c => c.date.startsWith(prefix) && c.type === 'receita')
+        .reduce((s, c) => s + c.amount, 0);
+      const custo = cashFlow
+        .filter(c => c.date.startsWith(prefix) && c.type === 'despesa')
+        .reduce((s, c) => s + c.amount, 0);
+
+      return {
+        month: monthLabel,
+        receita,
+        custo,
+        lucro: receita - custo
+      };
+    });
   }, [cashFlow]);
 
   // Group costs by category for the active period
@@ -180,7 +226,7 @@ export const CashFlowManager: React.FC = () => {
             Período Financeiro:
           </span>
           <span className="px-2 py-0.5 rounded text-[11px] font-mono font-bold bg-gold-500/15 text-gold-400 border border-gold-500/30">
-            {PERIOD_LABELS[selectedPeriod]}
+            {periodInfo.labels[selectedPeriod]}
           </span>
         </div>
 
@@ -191,7 +237,7 @@ export const CashFlowManager: React.FC = () => {
               selectedPeriod === 'mes_atual' ? 'bg-gold-500 text-black font-bold shadow-sm' : 'bg-dark-900 text-gray-400 hover:text-white border border-white/5'
             }`}
           >
-            Este Mês (Out/26)
+            {periodInfo.currentMonthBtn}
           </button>
           <button
             onClick={() => setSelectedPeriod('mes_anterior')}
@@ -199,7 +245,7 @@ export const CashFlowManager: React.FC = () => {
               selectedPeriod === 'mes_anterior' ? 'bg-gold-500 text-black font-bold shadow-sm' : 'bg-dark-900 text-gray-400 hover:text-white border border-white/5'
             }`}
           >
-            Mês Anterior (Set/26)
+            {periodInfo.prevMonthBtn}
           </button>
           <button
             onClick={() => setSelectedPeriod('ano_atual')}
@@ -207,7 +253,7 @@ export const CashFlowManager: React.FC = () => {
               selectedPeriod === 'ano_atual' ? 'bg-gold-500 text-black font-bold shadow-sm' : 'bg-dark-900 text-gray-400 hover:text-white border border-white/5'
             }`}
           >
-            Ano 2026
+            {periodInfo.yearBtn}
           </button>
           <button
             onClick={() => setSelectedPeriod('tudo')}
@@ -227,7 +273,7 @@ export const CashFlowManager: React.FC = () => {
           <div className="flex items-center justify-between text-xs text-gray-400">
             <div>
               <span className="font-semibold uppercase tracking-wider block">Receitas Totais</span>
-              <span className="text-[10px] text-gold-400 font-mono font-semibold">({PERIOD_LABELS[selectedPeriod]})</span>
+              <span className="text-[10px] text-gold-400 font-mono font-semibold">({periodInfo.labels[selectedPeriod]})</span>
             </div>
             <div className="p-2 rounded-xl bg-gold-500/10 text-gold-400">
               <ArrowUpRight className="w-4 h-4" />
@@ -246,7 +292,7 @@ export const CashFlowManager: React.FC = () => {
           <div className="flex items-center justify-between text-xs text-gray-400">
             <div>
               <span className="font-semibold uppercase tracking-wider block">Custos & Despesas</span>
-              <span className="text-[10px] text-rose-400 font-mono font-semibold">({PERIOD_LABELS[selectedPeriod]})</span>
+              <span className="text-[10px] text-rose-400 font-mono font-semibold">({periodInfo.labels[selectedPeriod]})</span>
             </div>
             <div className="p-2 rounded-xl bg-rose-500/10 text-rose-400">
               <ArrowDownRight className="w-4 h-4" />
@@ -266,7 +312,7 @@ export const CashFlowManager: React.FC = () => {
           <div className="flex items-center justify-between text-xs text-gold-400">
             <div>
               <span className="font-bold uppercase tracking-wider block">Resultado Líquido</span>
-              <span className="text-[10px] text-emerald-400 font-mono font-semibold">({PERIOD_LABELS[selectedPeriod]})</span>
+              <span className="text-[10px] text-emerald-400 font-mono font-semibold">({periodInfo.labels[selectedPeriod]})</span>
             </div>
             <div className="p-2 rounded-xl bg-gold-500/20 text-gold-400">
               <TrendingUp className="w-4 h-4" />

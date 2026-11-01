@@ -24,13 +24,6 @@ interface AdminDashboardProps {
 
 type PeriodOption = 'mes_atual' | 'mes_anterior' | 'ano_atual' | 'tudo';
 
-const PERIOD_LABELS: Record<PeriodOption, string> = {
-  mes_atual: 'Outubro / 2026',
-  mes_anterior: 'Setembro / 2026',
-  ano_atual: 'Ano 2026',
-  tudo: 'Acumulado Geral'
-};
-
 export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   onNavigate,
   onOpenNewSale,
@@ -39,19 +32,56 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   const { stats, sales, cashFlow, collaborators } = useModBox();
   const [selectedPeriod, setSelectedPeriod] = useState<PeriodOption>('mes_atual');
 
+  // Períodos dinâmicos calculados com base no calendário real
+  const periodInfo = useMemo(() => {
+    const now = new Date();
+    const curYear = now.getFullYear();
+    const curMonth = now.getMonth();
+
+    const curMonthPrefix = `${curYear}-${String(curMonth + 1).padStart(2, '0')}`;
+    const prevDate = new Date(curYear, curMonth - 1, 1);
+    const prevMonthPrefix = `${prevDate.getFullYear()}-${String(prevDate.getMonth() + 1).padStart(2, '0')}`;
+    const curYearPrefix = `${curYear}`;
+
+    const curMonthName = now.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
+    const prevMonthName = prevDate.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
+
+    const curMonthShort = now.toLocaleDateString('pt-BR', { month: 'short' }).replace('.', '');
+    const prevMonthShort = prevDate.toLocaleDateString('pt-BR', { month: 'short' }).replace('.', '');
+
+    const capitalize = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
+
+    const labels: Record<PeriodOption, string> = {
+      mes_atual: capitalize(curMonthName),
+      mes_anterior: capitalize(prevMonthName),
+      ano_atual: `Ano ${curYear}`,
+      tudo: 'Acumulado Geral'
+    };
+
+    return {
+      curMonthPrefix,
+      prevMonthPrefix,
+      curYearPrefix,
+      labels,
+      currentMonthBtn: `Este Mês (${capitalize(curMonthShort)}/${String(curYear).slice(-2)})`,
+      prevMonthBtn: `Mês Anterior (${capitalize(prevMonthShort)}/${String(prevDate.getFullYear()).slice(-2)})`,
+      yearBtn: `Ano ${curYear}`
+    };
+  }, []);
+
   // Filtra as entradas do fluxo de caixa de acordo com o período selecionado
   const filteredCashFlow = useMemo(() => {
     if (selectedPeriod === 'mes_atual') {
-      return cashFlow.filter(c => c.date.startsWith('2026-10'));
+      return cashFlow.filter(c => c.date.startsWith(periodInfo.curMonthPrefix));
     }
     if (selectedPeriod === 'mes_anterior') {
-      return cashFlow.filter(c => c.date.startsWith('2026-09'));
+      return cashFlow.filter(c => c.date.startsWith(periodInfo.prevMonthPrefix));
     }
     if (selectedPeriod === 'ano_atual') {
-      return cashFlow.filter(c => c.date.startsWith('2026'));
+      return cashFlow.filter(c => c.date.startsWith(periodInfo.curYearPrefix));
     }
     return cashFlow; // 'tudo'
-  }, [cashFlow, selectedPeriod]);
+  }, [cashFlow, selectedPeriod, periodInfo]);
 
   // Estatísticas calculadas dinamicamente para o período escolhido
   const periodStats = useMemo(() => {
@@ -125,7 +155,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             Período Financeiro:
           </span>
           <span className="px-2 py-0.5 rounded text-[11px] font-mono font-bold bg-gold-500/15 text-gold-400 border border-gold-500/30">
-            {PERIOD_LABELS[selectedPeriod]}
+            {periodInfo.labels[selectedPeriod]}
           </span>
         </div>
 
@@ -136,7 +166,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
               selectedPeriod === 'mes_atual' ? 'bg-gold-500 text-black font-bold shadow-sm' : 'bg-dark-900 text-gray-400 hover:text-white border border-white/5'
             }`}
           >
-            Este Mês (Out/26)
+            {periodInfo.currentMonthBtn}
           </button>
           <button
             onClick={() => setSelectedPeriod('mes_anterior')}
@@ -144,7 +174,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
               selectedPeriod === 'mes_anterior' ? 'bg-gold-500 text-black font-bold shadow-sm' : 'bg-dark-900 text-gray-400 hover:text-white border border-white/5'
             }`}
           >
-            Mês Anterior (Set/26)
+            {periodInfo.prevMonthBtn}
           </button>
           <button
             onClick={() => setSelectedPeriod('ano_atual')}
@@ -152,7 +182,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
               selectedPeriod === 'ano_atual' ? 'bg-gold-500 text-black font-bold shadow-sm' : 'bg-dark-900 text-gray-400 hover:text-white border border-white/5'
             }`}
           >
-            Ano 2026
+            {periodInfo.yearBtn}
           </button>
           <button
             onClick={() => setSelectedPeriod('tudo')}
@@ -172,7 +202,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
           <div className="flex items-center justify-between">
             <div>
               <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider block">Receita Realizada</span>
-              <span className="text-[10px] text-gold-400 font-mono font-semibold">({PERIOD_LABELS[selectedPeriod]})</span>
+              <span className="text-[10px] text-gold-400 font-mono font-semibold">({periodInfo.labels[selectedPeriod]})</span>
             </div>
             <div className="p-2.5 rounded-xl bg-gold-500/15 text-gold-500">
               <DollarSign className="w-5 h-5" />
@@ -194,7 +224,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
           <div className="flex items-center justify-between">
             <div>
               <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider block">Custos & Produção</span>
-              <span className="text-[10px] text-rose-400 font-mono font-semibold">({PERIOD_LABELS[selectedPeriod]})</span>
+              <span className="text-[10px] text-rose-400 font-mono font-semibold">({periodInfo.labels[selectedPeriod]})</span>
             </div>
             <div className="p-2.5 rounded-xl bg-rose-500/10 text-rose-400">
               <ArrowDownRight className="w-5 h-5" />
@@ -215,7 +245,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
           <div className="flex items-center justify-between">
             <div>
               <span className="text-xs font-bold text-gold-500 uppercase tracking-wider block">Lucro Líquido</span>
-              <span className="text-[10px] text-emerald-400 font-mono font-semibold">({PERIOD_LABELS[selectedPeriod]})</span>
+              <span className="text-[10px] text-emerald-400 font-mono font-semibold">({periodInfo.labels[selectedPeriod]})</span>
             </div>
             <div className="p-2.5 rounded-xl bg-gold-500/15 text-gold-500">
               <TrendingUp className="w-5 h-5" />
