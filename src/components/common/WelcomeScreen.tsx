@@ -40,7 +40,7 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({ onEnter }) => {
           draggable={false}
           onClick={handleLogoClick}
         />
-        <h1 className="sr-only">ModBox - Sistema de Gestão e Montagem de Contêineres</h1>
+        <h1 className="sr-only">ModBox - Sistema de Gestão: Modulares, Coberturas e Estruturas Metálicas</h1>
 
         <div className="w-full mt-10 space-y-2.5">
           <button

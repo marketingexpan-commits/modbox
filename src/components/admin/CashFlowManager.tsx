@@ -126,9 +126,9 @@ export const CashFlowManager: React.FC = () => {
   }, [periodCashFlow]);
 
   const categoryLabels: Record<string, string> = {
-    venda_conteiner: 'Venda de Contêineres',
+    venda_conteiner: 'Venda de Produtos (Modular / Cobertura / Estrutura)',
     locacao: 'Locação de Módulos',
-    materia_prima: 'Aço Corten / Contêineres Brutos',
+    materia_prima: 'Aço Corten / Matéria-Prima',
     serralheria: 'Perfis e Serralheria',
     eletrica_hidraulica: 'Elétrica & Hidráulica',
     mao_de_obra_montagem: 'Mão de Obra de Montagem',
@@ -159,7 +159,7 @@ export const CashFlowManager: React.FC = () => {
           </div>
           <h2 className="text-2xl font-bold text-white">Gestão Financeira</h2>
           <p className="text-sm text-gray-400 mt-0.5">
-            Acompanhe receitas de contêineres vendidos, custos com insumos industriais e lucro líquido.
+            Acompanhe receitas de produtos vendidos, custos com insumos industriais e lucro líquido.
           </p>
         </div>
 
@@ -421,7 +421,7 @@ export const CashFlowManager: React.FC = () => {
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
             <h3 className="text-lg font-bold text-white">Extrato de Movimentações Financeiras</h3>
-            <p className="text-xs text-gray-400">Lançamentos de vendas, compras de contêineres e pagamentos</p>
+            <p className="text-xs text-gray-400">Lançamentos de vendas, compras de matéria-prima e pagamentos</p>
           </div>
 
           <div className="flex flex-wrap items-center gap-3">
@@ -579,13 +579,13 @@ export const CashFlowManager: React.FC = () => {
             >
               {type === 'receita' ? (
                 <>
-                  <option value="venda_conteiner">Venda de Contêiner</option>
+                  <option value="venda_conteiner">Venda de Produto (Modular / Cobertura / Estrutura)</option>
                   <option value="locacao">Locação de Módulos</option>
                   <option value="outros">Outras Receitas</option>
                 </>
               ) : (
                 <>
-                  <option value="materia_prima">Aço Corten / Contêiner Bruto</option>
+                  <option value="materia_prima">Aço Corten / Matéria-Prima</option>
                   <option value="serralheria">Serralheria & Perfis Metálicos</option>
                   <option value="eletrica_hidraulica">Elétrica & Hidráulica</option>
                   <option value="mao_de_obra_montagem">Mão de Obra de Montagem</option>

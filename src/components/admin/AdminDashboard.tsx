@@ -111,7 +111,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
               className="flex items-center gap-2 bg-dark-800 hover:bg-dark-750 text-gold-500 border border-gold-500/40 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all"
             >
               <Box className="w-4 h-4" />
-              <span>Cadastrar Contêiner</span>
+              <span>Cadastrar Produtos</span>
             </button>
           </div>
         </div>
@@ -206,7 +206,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             </span>
           </div>
           <div className="mt-2 text-xs text-gray-400">
-            Aço corten, isolamento, montagem e fretes
+            Perfis de aço, montagem, insumos e fretes
           </div>
         </div>
 
@@ -234,7 +234,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
           </div>
         </div>
 
-        {/* Contêineres em Andamento */}
+        {/* Obras & Produção em Andamento */}
         <div className="bg-dark-850 border border-white/5 rounded-2xl p-5 hover:border-gold-500/30 transition-all group">
           <div className="flex items-center justify-between">
             <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Obras & Produção</span>

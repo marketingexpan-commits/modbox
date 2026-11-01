@@ -64,9 +64,9 @@ export const ProductionPipeline: React.FC = () => {
             <Truck className="w-4 h-4" />
             <span>Linha de Produção & Montagem de Campo</span>
           </div>
-          <h2 className="text-2xl font-bold text-white">Status do Andamento dos Contêineres</h2>
+          <h2 className="text-2xl font-bold text-white">Status do Andamento da Produção & Montagem</h2>
           <p className="text-sm text-gray-400 mt-0.5">
-            Acompanhe o ciclo de vida completo de cada contêiner, desde o corte até a instalação final no cliente.
+            Acompanhe o ciclo de vida completo de cada produto, desde a fabricação até a montagem final no cliente.
           </p>
         </div>
 
@@ -199,7 +199,7 @@ export const ProductionPipeline: React.FC = () => {
 
                       {stageSales.length === 0 && (
                         <div className="border border-dashed border-white/5 rounded-xl p-4 text-center text-[11px] text-gray-500">
-                          Nenhum contêiner nesta fase
+                          Nenhum produto nesta fase
                         </div>
                       )}
                     </div>
@@ -279,7 +279,7 @@ export const ProductionPipeline: React.FC = () => {
         </div>
       )}
 
-      {/* Modal Detalhes do Contêiner & Diário de Obra */}
+      {/* Modal Detalhes da Obra / Produto & Diário */}
       <Modal
         isOpen={!!activeModalSale}
         onClose={() => setSelectedSaleForDetails(null)}
@@ -366,7 +366,7 @@ export const ProductionPipeline: React.FC = () => {
                   { key: 'fixacao_estrutural', label: '3. Ancoragem mecânica com chumbadores parabolt' },
                   { key: 'conexao_eletrica_geral', label: '4. Conexão de entrada e testes de disjuntores' },
                   { key: 'ligacao_hidraulica_esgoto', label: '5. Teste de pressão d\'água e vazão de esgoto' },
-                  { key: 'vedacao_silicone_pu', label: '6. Vedação perimetral com silicone PU naval' },
+                  { key: 'vedacao_silicone_pu', label: '6. Vedação perimetral com silicone PU industrial' },
                   { key: 'limpeza_e_higienizacao', label: '7. Limpeza técnica de entrega pós-obra' },
                   { key: 'termo_entrega_assinado', label: '8. Assinatura do termo de entrega pelo cliente' },
                 ].map(item => {

@@ -1,5 +1,7 @@
 export type AppRole = 'admin' | 'colaborador';
 
+export type ProductType = 'modular' | 'cobertura_metalica' | 'estrutura_metalica';
+
 export type ContainerCategory = 'escritorio' | 'comercial' | 'habitacional' | 'almoxarifado' | 'especial';
 
 export interface ContainerDimensions {
@@ -8,24 +10,44 @@ export interface ContainerDimensions {
   height: number; // metros (altura)
 }
 
+export interface ContainerSpecs {
+  // 1. Modular (Contêineres)
+  insulation?: string;
+  lining?: string;
+  floor?: string;
+  doors?: string;
+  windows?: string;
+  electrical?: string;
+  plumbing?: string;
+  externalFinish?: string;
+
+  // 2. Cobertura Metálica
+  roofTileType?: string;      // Tipo de Telha / Cobertura
+  trussStructure?: string;    // Tesoura & Treliças
+  columnsSupport?: string;    // Pilares & Sustentação
+  drainageGutters?: string;   // Calhas & Escoamento Pluvial
+  roofPainting?: string;      // Tratamento & Pintura
+  clearSpan?: string;         // Vão Livre & Iluminação
+
+  // 3. Estrutura Metálica em Geral / Serralheria
+  structureType?: string;     // Tipo de Estrutura / Projeto
+  steelPlates?: string;       // Chapas & Fechamento
+  metalProfiles?: string;     // Perfis Estruturais & Vigamento
+  hardwareMechanism?: string; // Ferragens & Mecanismos
+  steelFinish?: string;       // Acabamento & Tratamento
+  anchoringAssembly?: string; // Fixação & Montagem
+}
+
 export interface ContainerModel {
   id: string;
   name: string;
   code: string;
+  productType?: ProductType;  // Tipo de produto: Modular, Cobertura Metálica, Estrutura Metálica
   category: ContainerCategory;
   dimensions: ContainerDimensions;
   areaM2: number;
   volumeM3: number;
-  specs: {
-    insulation: string;    // Isolamento (ex: EPS 50mm, Lã de Rocha)
-    lining: string;        // Forro / Revestimento interno (ex: PVC especial, Drywall)
-    floor: string;         // Piso (ex: Compensado naval com piso vinílico)
-    doors: string;         // Portas (ex: 1 porta blindex + porta original contêiner)
-    windows: string;       // Janelas (ex: 2 janelas de correr 1.20x1.00m)
-    electrical: string;    // Elétrica (ex: 6 tomadas, 2 luminárias LED, quadro disjuntores)
-    plumbing: string;      // Hidráulica (ex: Ponto para lavabo com pia e vaso)
-    externalFinish: string;// Acabamento externo (ex: Pintura automotiva/naval preta/dourada)
-  };
+  specs: ContainerSpecs;
   baseCost: number;       // Custo estimado de produção (R$)
   suggestedPrice: number; // Preço sugerido de venda (R$)
   productionDaysEstimate: number;
@@ -117,7 +139,8 @@ export interface SaleOrder {
   };
   installationAddress: Address;
   containerModelId: string;
-  containerName: string;
+  containerName: string;   // Nome do produto (Modular, Cobertura Metálica ou Estrutura Metálica)
+  productType?: ProductType; // Tipo de produto vinculado ao pedido
   customDimensions?: ContainerDimensions;
   customizations: string[];
   financials: {

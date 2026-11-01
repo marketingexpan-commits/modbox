@@ -34,7 +34,7 @@ const EXPENSE_CATEGORY_LABELS: Record<string, string> = {
   transporte_munck: 'Frete & Caminhão Munck',
   administrativo: 'Administrativo & Licenças',
   outros: 'Outros Custos / Suprimentos',
-  venda_conteiner: 'Venda de Contêiner',
+  venda_conteiner: 'Venda de Produto (Modular / Cobertura / Estrutura)',
   locacao: 'Locação'
 };
 
@@ -242,7 +242,8 @@ export const SalesManager: React.FC = () => {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     const container = containers.find(c => c.id === selectedContainerId);
-    const containerName = container ? container.name : 'Contêiner ModBox';
+    const containerName = container ? container.name : 'Produto ModBox';
+    const productType = container?.productType || 'modular';
     const balanceDue = Math.max(0, totalAmount - downPayment);
     const grossProfit = totalAmount - productionCost;
 
@@ -342,7 +343,7 @@ export const SalesManager: React.FC = () => {
           </div>
           <h2 className="text-2xl font-bold text-white">Vendas e Cronograma de Montagens</h2>
           <p className="text-sm text-gray-400 mt-0.5">
-            Acompanhe o cliente, o contêiner contratado, a equipe técnica escalada e os valores recebidos.
+            Acompanhe o cliente, o produto contratado, a equipe técnica escalada e os valores recebidos.
           </p>
         </div>
 
@@ -611,7 +612,7 @@ export const SalesManager: React.FC = () => {
       <Modal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
-        title={editingSaleId ? 'Editar Pedido de Venda' : 'Cadastrar Nova Venda de Contêiner'}
+        title={editingSaleId ? 'Editar Pedido de Venda' : 'Cadastrar Novo Pedido de Venda'}
         subtitle="Vincule as especificações do cliente, endereço de montagem e equipe operacional"
         maxWidth="3xl"
       >
@@ -675,7 +676,7 @@ export const SalesManager: React.FC = () => {
           {/* Endereço de Montagem */}
           <div className="pt-3 border-t border-white/5">
             <h4 className="text-xs font-bold text-gold-400 uppercase tracking-wider mb-2">
-              2. Endereço Completo de Instalação / Montagem do Contêiner
+              2. Endereço Completo de Instalação / Montagem
             </h4>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               <div className="sm:col-span-2">
@@ -754,7 +755,7 @@ export const SalesManager: React.FC = () => {
           {/* Contêiner e Customizações */}
           <div className="pt-3 border-t border-white/5">
             <h4 className="text-xs font-bold text-gold-400 uppercase tracking-wider mb-2">
-              3. Modelo de Contêiner & Opcionais
+              3. Modelo do Produto (Modular / Cobertura / Estrutura) & Opcionais
             </h4>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
@@ -764,11 +765,18 @@ export const SalesManager: React.FC = () => {
                   onChange={e => handleContainerChange(e.target.value)}
                   className="w-full bg-dark-950 border border-white/10 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-gold-500 cursor-pointer"
                 >
-                  {containers.map(c => (
-                    <option key={c.id} value={c.id}>
-                      {c.name} ({c.dimensions.length}m × {c.dimensions.width}m - {c.areaM2}m²)
-                    </option>
-                  ))}
+                  {containers.map(c => {
+                    const typeTag = c.productType === 'cobertura_metalica' 
+                      ? '[Cobertura Metálica]' 
+                      : c.productType === 'estrutura_metalica' 
+                      ? '[Estrutura Metálica]' 
+                      : '[Modular]';
+                    return (
+                      <option key={c.id} value={c.id}>
+                        {typeTag} {c.name} ({c.dimensions.length}m × {c.dimensions.width}m - {c.areaM2}m²)
+                      </option>
+                    );
+                  })}
                 </select>
               </div>
 
@@ -1003,7 +1011,7 @@ export const SalesManager: React.FC = () => {
                   <div>[ ] Fixação estrutural parabolt</div>
                   <div>[ ] Teste de carga elétrica e disjuntores</div>
                   <div>[ ] Teste de estanqueidade e hidráulica</div>
-                  <div>[ ] Vedação de silicone PU naval</div>
+                  <div>[ ] Vedação de silicone PU industrial</div>
                 </div>
               </div>
 

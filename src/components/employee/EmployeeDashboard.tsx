@@ -139,7 +139,7 @@ export const EmployeeDashboard: React.FC = () => {
             <span>Agenda & Cronograma de Instalações</span>
           </h2>
           <span className="text-xs text-gray-400">
-            {relevantSales.length} {relevantSales.length === 1 ? 'contêiner programado' : 'contêineres programados'}
+            {relevantSales.length} {relevantSales.length === 1 ? 'instalação programada' : 'instalações programadas'}
           </span>
         </div>
 
@@ -278,7 +278,7 @@ export const EmployeeDashboard: React.FC = () => {
                 {/* Container technical details */}
                 <div className="bg-dark-900 p-4 rounded-xl border border-white/5 space-y-2">
                   <span className="text-[10px] uppercase font-bold text-gold-500 block">
-                    Especificações Técnicas do Contêiner
+                    Especificações Técnicas do Produto
                   </span>
                   {containerModel ? (
                     <div className="space-y-1 text-gray-300">
@@ -289,7 +289,7 @@ export const EmployeeDashboard: React.FC = () => {
                         </span>{' '}
                         • Área: <span className="font-mono text-gold-500 font-bold">{containerModel.areaM2} m²</span>
                       </div>
-                      <div>Isolamento: <span className="text-gray-200">{containerModel.specs.insulation}</span></div>
+                      <div>Piso/Forro: <span className="text-gray-200">{containerModel.specs.lining || containerModel.specs.floor || 'Padrão'}</span></div>
                       <div>Portas/Janelas: <span className="text-gray-200">{containerModel.specs.doors}</span></div>
                     </div>
                   ) : (
@@ -362,7 +362,7 @@ export const EmployeeDashboard: React.FC = () => {
                     { key: 'fixacao_estrutural', label: '3. Ancoragem Parabolt' },
                     { key: 'conexao_eletrica_geral', label: '4. Conexão Elétrica & LED' },
                     { key: 'ligacao_hidraulica_esgoto', label: '5. Conexão Hidráulica' },
-                    { key: 'vedacao_silicone_pu', label: '6. Vedação PU Naval' },
+                    { key: 'vedacao_silicone_pu', label: '6. Vedação PU Industrial' },
                     { key: 'limpeza_e_higienizacao', label: '7. Limpeza Técnica Final' },
                     { key: 'termo_entrega_assinado', label: '8. Assinatura do Cliente' },
                   ].map(item => {
@@ -400,7 +400,7 @@ export const EmployeeDashboard: React.FC = () => {
                 <div className="flex gap-2">
                   <input
                     type="text"
-                    placeholder="Adicionar nota sobre a montagem (ex: contêiner posicionado, cliente solicitou ajuste)..."
+                    placeholder="Adicionar nota sobre a montagem (ex: módulo posicionado, cliente solicitou ajuste)..."
                     value={noteInput}
                     onChange={e => setNoteInput(e.target.value)}
                     onKeyDown={e => {
@@ -446,7 +446,7 @@ export const EmployeeDashboard: React.FC = () => {
             <p className="text-xs text-gray-400 max-w-sm mx-auto">
               {filterMode === 'minhas' 
                 ? 'Você não está escalado para nenhuma montagem ativa. Alterne para "Todas as Obras" para visualizar o cronograma geral.'
-                : 'Não há contêineres na fila de montagem no momento.'}
+                : 'Não há pedidos ou módulos na fila de montagem no momento.'}
             </p>
           </div>
         )}

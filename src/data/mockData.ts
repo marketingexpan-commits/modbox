@@ -14,14 +14,14 @@ export const INITIAL_CONTAINERS: ContainerModel[] = [
     areaM2: 14.76,
     volumeM3: 38.23,
     specs: {
-      insulation: 'EPS termoacústico 50mm antichamas de alta densidade',
+      insulation: '',
       lining: 'Drywall acústico com acabamento massa corrida e pintura premium',
-      floor: 'Compensado naval 18mm com piso vinílico amadeirado de alto tráfego',
+      floor: 'Piso estrutural com acabamento vinílico amadeirado de alto tráfego',
       doors: '01 Porta frontal de correr blindex temperado 8mm (2.10x1.60m)',
       windows: '02 Janelas blindex maxim-ar com proteção UV (1.20x0.60m)',
       electrical: '08 Pontos de tomadas 110/220V, 04 spots LED embutidos, infraestrutura de A/C',
       plumbing: 'Lavabo completo com cuba sobreposta, torneira monocomando e vaso sanitário',
-      externalFinish: 'Fundo anticorrosivo epóxi + Pintura poliuretano naval Preto Fosco com detalhes Dourados'
+      externalFinish: 'Fundo anticorrosivo epóxi + Pintura poliuretano industrial Preto Fosco com detalhes Dourados'
     },
     baseCost: 28500,
     suggestedPrice: 46900,
@@ -42,14 +42,14 @@ export const INITIAL_CONTAINERS: ContainerModel[] = [
     areaM2: 29.74,
     volumeM3: 85.95,
     specs: {
-      insulation: 'Isolamento termoacústico duplo: Lã de Rocha 75mm + barreira radiante',
+      insulation: '',
       lining: 'Painéis ripados decorativos e forro em gesso acartonado com sanca iluminada',
-      floor: 'Porcelanato acetinado retificado com impermeabilização naval',
+      floor: 'Porcelanato acetinado retificado com impermeabilização técnica',
       doors: '01 Porta pivotante de alumínio preto fosco + 01 porta balcão blindex',
       windows: '04 Grandes painéis de vidro fixo e esquadrias de correr pretas com persiana integrada',
       electrical: 'Quadro de disjuntores com DR, circuitos independentes, 16 tomadas, iluminação cênica LED',
       plumbing: 'Banheiro completo com box blindex, nicho embutido, tubulação Tigre PPR água quente/fria',
-      externalFinish: 'Tratamento jateado abrasivo + Pintura em poliuretano naval automotivo preto fosco e filetes dourados'
+      externalFinish: 'Tratamento jateado abrasivo + Pintura em poliuretano industrial automotivo preto fosco e filetes dourados'
     },
     baseCost: 58000,
     suggestedPrice: 94500,
@@ -70,14 +70,14 @@ export const INITIAL_CONTAINERS: ContainerModel[] = [
     areaM2: 14.76,
     volumeM3: 38.23,
     specs: {
-      insulation: 'Poliuretano injetado 40mm (máxima resistência térmica)',
+      insulation: '',
       lining: 'Inox escovado na área de cocção e PVC especial lavável no restante',
       floor: 'Chapa xadrez de alumínio antiderrapante lavável com ralo linear',
       doors: 'Abertura lateral estilo escotilha pneumática com pistões a gás',
       windows: 'Balcão de atendimento dobrável em inox com iluminação focal',
       electrical: 'Entrada trifásica 380/220V, tomadas industriais de alta potência, coifa',
       plumbing: 'Caixa de gordura integrada, 2 pias de higienização em inox com acionamento por pedal',
-      externalFinish: 'Pintura naval preta com logomarca e frisos dourados metálicos'
+      externalFinish: 'Pintura industrial preta com logomarca e frisos dourados metálicos'
     },
     baseCost: 34000,
     suggestedPrice: 53900,
@@ -98,9 +98,9 @@ export const INITIAL_CONTAINERS: ContainerModel[] = [
     areaM2: 7.32,
     volumeM3: 18.96,
     specs: {
-      insulation: 'Ventilação natural com aletas metálicas venezianas reforçadas',
+      insulation: '',
       lining: 'Estrutura original em aço corten 2.5mm reforçada',
-      floor: 'Compensado naval original 28mm resistente a carga pesada',
+      floor: 'Piso estrutural reforçado para carga pesada',
       doors: 'Portas originais do contêiner com tranca tetra e barra anti-arrombamento',
       windows: 'Sem janelas para máxima segurança patrimonial',
       electrical: '02 Pontos de luz LED blindada e 02 tomadas blindadas IP65',
@@ -126,7 +126,7 @@ export const INITIAL_CONTAINERS: ContainerModel[] = [
     areaM2: 59.48,
     volumeM3: 171.9,
     specs: {
-      insulation: 'Lã de Vidro acústica 100mm + manta termoacústica de alumínio',
+      insulation: '',
       lining: 'Forro acústico modular com iluminação linear em perfis de LED dourados',
       floor: 'Deck de madeira ecológica no andar superior e porcelanato no térreo',
       doors: 'Portas de correr panorâmicas com folhas quádruplas de vidro laminado 10mm',
@@ -138,8 +138,63 @@ export const INITIAL_CONTAINERS: ContainerModel[] = [
     baseCost: 115000,
     suggestedPrice: 189000,
     productionDaysEstimate: 45,
+    productType: 'modular',
     description: 'Projeto modular de 2 andares para estandes de vendas imobiliárias de luxo, restaurantes sofisticados e sedes corporativas modulares.',
     badge: 'Projeto Exclusivo'
+  },
+  {
+    id: 'cnt-cob-01',
+    name: 'ModBox Cobertura Duas Águas Galvanizada',
+    code: 'MBX-COB-01',
+    productType: 'cobertura_metalica',
+    category: 'comercial',
+    dimensions: {
+      length: 10.00,
+      width: 6.00,
+      height: 3.50
+    },
+    areaM2: 60.00,
+    volumeM3: 210.00,
+    specs: {
+      roofTileType: 'Telha termoacústica sanduíche PIR/EPS 30mm trapézio',
+      trussStructure: 'Treliça metálica estrutural em duas águas perfil Ue',
+      columnsSupport: 'Pilares tubulares/perfil W com sapatas chumbadas ao solo',
+      drainageGutters: 'Calhas galvanizadas corte 33 com rufos e descidas pluviais',
+      roofPainting: 'Galvanização a quente + esmalte sintético anticorrosivo',
+      clearSpan: 'Vão livre total com telhas translúcidas em policarbonato'
+    },
+    baseCost: 22000,
+    suggestedPrice: 38500,
+    productionDaysEstimate: 14,
+    description: 'Cobertura metálica robusta para galpões, áreas comerciais, garagens e centros operacionais com proteção solar e pluvial de alta resistência.',
+    badge: 'Coberturas'
+  },
+  {
+    id: 'cnt-est-01',
+    name: 'ModBox Portão Basculante Industrial',
+    code: 'MBX-EST-01',
+    productType: 'estrutura_metalica',
+    category: 'comercial',
+    dimensions: {
+      length: 5.00,
+      width: 0.20,
+      height: 2.80
+    },
+    areaM2: 14.00,
+    volumeM3: 2.80,
+    specs: {
+      structureType: 'Portão basculante industrial articulado',
+      steelPlates: 'Chapa lambril búzios galvanizada cal. 18',
+      metalProfiles: 'Tubos quadrados 80x80mm com reforço interno cruzado',
+      hardwareMechanism: 'Caixa de contrapeso embutida com cabo de aço duplo e trava tetra',
+      steelFinish: 'Fundo convertedor de ferrugem + pintura eletrostática preta',
+      anchoringAssembly: 'Chumbadores químicos parabolt de alta resistência'
+    },
+    baseCost: 6800,
+    suggestedPrice: 13500,
+    productionDaysEstimate: 7,
+    description: 'Serralheria pesada com fabricação sob medida de portão basculante ou articulado para empresas, condomínios e indústrias.',
+    badge: 'Serralheria'
   }
 ];
 
@@ -235,7 +290,7 @@ export const INITIAL_COLLABORATORS: Collaborator[] = [
     phone: '(11) 98456-1123',
     email: 'rodrigo.montagem@modbox.com.br',
     role: 'Montador Especialista de Esquadrias & Drywall',
-    skills: ['Colocação de Blindex', 'Forro Termoacústico', 'Vedação PU Naval', 'Piso Vinílico'],
+    skills: ['Colocação de Blindex', 'Forro Termoacústico', 'Vedação PU Industrial', 'Piso Vinílico'],
     address: {
       street: 'Rua Bento Gonçalves',
       number: '315',
@@ -260,8 +315,8 @@ export const INITIAL_COLLABORATORS: Collaborator[] = [
     birthDate: '1985-12-03',
     phone: '(11) 97321-8890',
     email: 'alexandre.pintura@modbox.com.br',
-    role: 'Pintor Técnico & Preparador Naval',
-    skills: ['Pintura Poliuretânica Naval', 'Jateamento Abrasivo', 'Filetes Metálicos Dourados', 'Impermeabilização'],
+    role: 'Pintor Técnico & Preparador Industrial',
+    skills: ['Pintura Poliuretânica Industrial', 'Jateamento Abrasivo', 'Filetes Metálicos Dourados', 'Impermeabilização'],
     address: {
       street: 'Estrada dos Alvarengas',
       number: '2100',
@@ -532,7 +587,7 @@ export const INITIAL_SALES: SaleOrder[] = [
     customizations: [
       'Deck em madeira plástica superior para observatório',
       'Esquadrias antirruído e vidros termoacústicos duplos',
-      'Pintura ultraresistente marítima anti-maresia'
+      'Pintura ultraresistente anticorrosiva e acabamento premium'
     ],
     financials: {
       totalAmount: 98000,
@@ -651,7 +706,7 @@ export const INITIAL_CASH_FLOW: CashFlowEntry[] = [
     type: 'despesa',
     category: 'materia_prima',
     amount: 14200,
-    description: 'Aquisição de Contêiner 20ft Marítimo Dry Grau A (Siderúrgica & Portos)',
+    description: 'Aquisição de Módulo Estrutural em Aço Industrial',
     date: '2026-10-02',
     clientOrSupplier: 'Porto Logística Containers Santos'
   },
@@ -774,7 +829,7 @@ export const PRODUCTION_STAGES_CONFIG: {
   { id: 'serralheria_corte', label: 'Serralheria & Corte', stepNumber: 3, description: 'Aberturas, reforços e esquadrias' },
   { id: 'isolamento', label: 'Isolamento', stepNumber: 4, description: 'Aplicação de lã de rocha/EPS e forro' },
   { id: 'eletrica_hidraulica', label: 'Elétrica & Hidráulica', stepNumber: 5, description: 'Passagem de cabos, tubos e quadros' },
-  { id: 'acabamento_pintura', label: 'Pintura & Acabamento', stepNumber: 6, description: 'Pintura naval, piso e vidros' },
+  { id: 'acabamento_pintura', label: 'Pintura & Acabamento', stepNumber: 6, description: 'Pintura industrial, piso e vidros' },
   { id: 'transporte', label: 'Transporte / Logística', stepNumber: 7, description: 'Em trânsito para o local da obra' },
   { id: 'montagem_local', label: 'Montagem no Local', stepNumber: 8, description: 'Nivelamento, içamento e instalação' },
   { id: 'concluido', label: 'Concluído & Entregue', stepNumber: 9, description: 'Termo de entrega e garantia assinado' },

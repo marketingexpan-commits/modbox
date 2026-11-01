@@ -120,7 +120,23 @@ export const ModBoxProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const [containers, setContainers] = useState<ContainerModel[]>(() => {
     try {
       const saved = localStorage.getItem(`${STORAGE_KEY}_containers`);
-      return saved ? JSON.parse(saved) : INITIAL_CONTAINERS;
+      if (saved) {
+        const parsed: ContainerModel[] = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          const withType = parsed.map(c => ({
+            ...c,
+            productType: c.productType || 'modular'
+          }));
+          const hasCobertura = withType.some(c => c.productType === 'cobertura_metalica');
+          const hasEstrutura = withType.some(c => c.productType === 'estrutura_metalica');
+          if (!hasCobertura || !hasEstrutura) {
+            const missing = INITIAL_CONTAINERS.filter(ic => !withType.some(c => c.id === ic.id));
+            return [...withType, ...missing];
+          }
+          return withType;
+        }
+      }
+      return INITIAL_CONTAINERS;
     } catch {
       return INITIAL_CONTAINERS;
     }
