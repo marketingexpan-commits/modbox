@@ -13,11 +13,47 @@ import { EmployeeDashboard } from './components/employee/EmployeeDashboard';
 import { WelcomeScreen } from './components/common/WelcomeScreen';
 import { LoginScreen } from './components/common/LoginScreen';
 
+const SESSION_STORAGE_KEY = 'modbox_auth_session_v1';
+
+const getInitialSession = () => {
+  try {
+    const saved = localStorage.getItem(SESSION_STORAGE_KEY);
+    if (saved) {
+      const parsed = JSON.parse(saved);
+      if (parsed && typeof parsed === 'object' && parsed.loggedIn) {
+        return parsed;
+      }
+    }
+  } catch {}
+  return null;
+};
+
 const MainApp: React.FC = () => {
   const { role, setRole, setActiveCollaboratorId, setActiveAdminId } = useModBox();
-  const [currentTab, setCurrentTab] = useState<string>('dashboard');
-  const [loggedIn, setLoggedIn] = useState(false);
+  const initialSession = getInitialSession();
+  const [loggedIn, setLoggedIn] = useState<boolean>(() => Boolean(initialSession?.loggedIn));
+  const [currentTab, setCurrentTab] = useState<string>(() => initialSession?.currentTab || (initialSession?.role === 'colaborador' ? 'agenda' : 'dashboard'));
   const [loginMode, setLoginMode] = useState<'colaborador' | 'admin' | null>(null);
+
+  const handleNavigate = (tab: string) => {
+    setCurrentTab(tab);
+    try {
+      const saved = localStorage.getItem(SESSION_STORAGE_KEY);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        parsed.currentTab = tab;
+        localStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(parsed));
+      }
+    } catch {}
+  };
+
+  const handleLogout = () => {
+    setLoggedIn(false);
+    setLoginMode(null);
+    try {
+      localStorage.removeItem(SESSION_STORAGE_KEY);
+    } catch {}
+  };
 
   if (!loggedIn) {
     if (loginMode) {
@@ -29,9 +65,18 @@ const MainApp: React.FC = () => {
             setRole(r);
             if (r === 'colaborador') setActiveCollaboratorId(userId ?? null);
             if (r === 'admin') setActiveAdminId(userId ?? null);
-            setCurrentTab(r === 'admin' ? 'dashboard' : 'agenda');
+            const tab = r === 'admin' ? 'dashboard' : 'agenda';
+            setCurrentTab(tab);
             setLoginMode(null);
             setLoggedIn(true);
+            try {
+              localStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify({
+                loggedIn: true,
+                role: r,
+                userId: userId ?? null,
+                currentTab: tab
+              }));
+            } catch {}
           }}
         />
       );
@@ -42,7 +87,7 @@ const MainApp: React.FC = () => {
   return (
     <div className="min-h-screen bg-dark-950 flex flex-col selection:bg-gold-500 selection:text-black">
       {/* Top Header with Prominent Central Gold ModBox Logo */}
-      <Header currentTab={currentTab} setCurrentTab={setCurrentTab} onLogout={() => setLoggedIn(false)} />
+      <Header currentTab={currentTab} setCurrentTab={handleNavigate} onLogout={handleLogout} />
 
       {/* Main Content Area */}
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 py-6">
@@ -50,15 +95,15 @@ const MainApp: React.FC = () => {
           <>
             {currentTab === 'dashboard' && (
               <AdminDashboard
-                onNavigate={setCurrentTab}
-                onOpenNewSale={() => setCurrentTab('sales')}
-                onOpenNewContainer={() => setCurrentTab('containers')}
+                onNavigate={handleNavigate}
+                onOpenNewSale={() => handleNavigate('sales')}
+                onOpenNewContainer={() => handleNavigate('containers')}
               />
             )}
             {currentTab === 'agenda' && (
               <ScheduleCalendar 
-                onNavigateToSale={() => setCurrentTab('sales')}
-                onOpenNewSale={() => setCurrentTab('sales')}
+                onNavigateToSale={() => handleNavigate('sales')}
+                onOpenNewSale={() => handleNavigate('sales')}
               />
             )}
             {currentTab === 'containers' && <ContainersManager />}

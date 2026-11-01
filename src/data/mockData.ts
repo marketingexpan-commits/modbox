@@ -1,4 +1,4 @@
-﻿import { ContainerModel, Collaborator, SaleOrder, CashFlowEntry, AdminUser } from '../types';
+import { ContainerModel, Collaborator, SaleOrder, CashFlowEntry, AdminUser } from '../types';
 
 export const INITIAL_CONTAINERS: ContainerModel[] = [
   {
@@ -357,7 +357,7 @@ export const PRODUCTION_STAGES_CONFIG: {
 export const INITIAL_ADMINS: AdminUser[] = [
   {
     id: 'adm-01',
-    name: 'Humberto Jr',
+    name: 'Júnior Cavalcanti',
     cpf: '000.000.000-00',
     pin: '000000',
     createdAt: '2026-01-15'

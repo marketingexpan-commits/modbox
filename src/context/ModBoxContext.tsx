@@ -85,23 +85,38 @@ interface ModBoxContextType {
 }
 
 const STORAGE_KEY = 'modbox_app_state_v1';
+const SESSION_STORAGE_KEY = 'modbox_auth_session_v1';
 const DEFAULT_PIN = '123456';
 const DEFAULT_ADMIN_PIN = '000000';
 const onlyDigits = (v: string) => v.replace(/\D/g, '');
 
+const getSavedSession = () => {
+  try {
+    const saved = localStorage.getItem(SESSION_STORAGE_KEY);
+    if (saved) {
+      const parsed = JSON.parse(saved);
+      if (parsed && typeof parsed === 'object' && parsed.loggedIn) {
+        return parsed;
+      }
+    }
+  } catch {}
+  return null;
+};
+
 const ModBoxContext = createContext<ModBoxContextType | undefined>(undefined);
 
 export const ModBoxProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [role, setRole] = useState<AppRole>('admin');
-  const [activeCollaboratorId, setActiveCollaboratorId] = useState<string | null>('col-01');
-  const [activeAdminId, setActiveAdminId] = useState<string | null>('adm-01');
+  const initialSession = getSavedSession();
+  const [role, setRole] = useState<AppRole>(() => (initialSession?.role === 'colaborador' ? 'colaborador' : 'admin'));
+  const [activeCollaboratorId, setActiveCollaboratorId] = useState<string | null>(() => (initialSession?.role === 'colaborador' ? initialSession?.userId || 'col-01' : 'col-01'));
+  const [activeAdminId, setActiveAdminId] = useState<string | null>(() => (initialSession?.role === 'admin' ? initialSession?.userId || 'adm-01' : 'adm-01'));
 
   const [admins, setAdmins] = useState<AdminUser[]>(() => {
     try {
       const saved = localStorage.getItem(`${STORAGE_KEY}_admins`);
       if (saved) {
         const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.some(a => a.name === 'Humberto Jr')) {
+        if (Array.isArray(parsed) && parsed.length > 0) {
           return parsed;
         }
       }
