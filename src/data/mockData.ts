@@ -346,12 +346,11 @@ export const PRODUCTION_STAGES_CONFIG: {
   { id: 'orcamento', label: 'Orçamento', stepNumber: 1, description: 'Negociação comercial e especificações' },
   { id: 'projeto_aprovado', label: 'Projeto Aprovado', stepNumber: 2, description: 'Planta executiva e liberação técnica' },
   { id: 'serralheria_corte', label: 'Serralheria & Corte', stepNumber: 3, description: 'Aberturas, reforços e esquadrias' },
-  { id: 'isolamento', label: 'Isolamento', stepNumber: 4, description: 'Aplicação de lã de rocha/EPS e forro' },
-  { id: 'eletrica_hidraulica', label: 'Elétrica & Hidráulica', stepNumber: 5, description: 'Passagem de cabos, tubos e quadros' },
-  { id: 'acabamento_pintura', label: 'Pintura & Acabamento', stepNumber: 6, description: 'Pintura industrial, piso e vidros' },
-  { id: 'transporte', label: 'Transporte / Logística', stepNumber: 7, description: 'Em trânsito para o local da obra' },
-  { id: 'montagem_local', label: 'Montagem no Local', stepNumber: 8, description: 'Nivelamento, içamento e instalação' },
-  { id: 'concluido', label: 'Concluído & Entregue', stepNumber: 9, description: 'Termo de entrega e garantia assinado' },
+  { id: 'eletrica_hidraulica', label: 'Elétrica & Hidráulica', stepNumber: 4, description: 'Passagem de cabos, tubos e quadros' },
+  { id: 'acabamento_pintura', label: 'Pintura & Acabamento', stepNumber: 5, description: 'Pintura industrial, piso e vidros' },
+  { id: 'transporte', label: 'Transporte / Logística', stepNumber: 6, description: 'Em trânsito para o local da obra' },
+  { id: 'montagem_local', label: 'Montagem no Local', stepNumber: 7, description: 'Nivelamento, içamento e instalação' },
+  { id: 'concluido', label: 'Concluído & Entregue', stepNumber: 8, description: 'Termo de entrega e garantia assinado' },
 ];
 
 export const INITIAL_ADMINS: AdminUser[] = [

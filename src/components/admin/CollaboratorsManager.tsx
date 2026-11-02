@@ -13,10 +13,12 @@ import {
   Trash2, 
   HardHat, 
   Shield, 
-  FileText 
+  FileText,
+  DollarSign,
+  Coins
 } from 'lucide-react';
 import { useModBox } from '../../context/ModBoxContext';
-import { Collaborator, CollaboratorStatus } from '../../types';
+import { Collaborator, CollaboratorStatus, PaymentModel, CashFlowEntry } from '../../types';
 import { Modal } from '../common/Modal';
 
 const formatCurrency = (val: number) =>
@@ -30,12 +32,34 @@ const formatAdmissionDate = (dateStr: string) => {
 };
 
 export const CollaboratorsManager: React.FC = () => {
-  const { collaborators, addCollaborator, updateCollaborator, deleteCollaborator, sales } = useModBox();
+  const { 
+    collaborators, 
+    addCollaborator, 
+    updateCollaborator, 
+    deleteCollaborator, 
+    sales,
+    cashFlow,
+    addCashFlowEntry,
+    deleteCashFlowEntry,
+    addProjectExpense,
+    deleteProjectExpense
+  } = useModBox();
 
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('todos');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingCollab, setEditingCollab] = useState<Collaborator | null>(null);
+
+  // Modal Lançar Valor Extra / Pagamento
+  const [extraPaymentCollab, setExtraPaymentCollab] = useState<Collaborator | null>(null);
+  const [extraPaymentType, setExtraPaymentType] = useState<'extra' | 'salario' | 'diaria'>('extra');
+  const [extraDaysCount, setExtraDaysCount] = useState<number>(1);
+  const [extraAmount, setExtraAmount] = useState<string>('');
+  const [extraReason, setExtraReason] = useState<string>('');
+  const [extraDate, setExtraDate] = useState<string>(new Date().toISOString().split('T')[0]);
+  const [extraWorkedDate, setExtraWorkedDate] = useState<string>(new Date().toISOString().split('T')[0]);
+  const [extraWorkedDatesList, setExtraWorkedDatesList] = useState<string[]>([]);
+  const [extraSaleId, setExtraSaleId] = useState<string>('');
 
   // Form State
   const [name, setName] = useState('');
@@ -49,7 +73,10 @@ export const CollaboratorsManager: React.FC = () => {
   const [skillsStr, setSkillsStr] = useState('Nivelamento, Fixação, Içamento');
   const [admissionDate, setAdmissionDate] = useState(new Date().toISOString().split('T')[0]);
   const [status, setStatus] = useState<CollaboratorStatus>('disponivel');
+  const [paymentModel, setPaymentModel] = useState<PaymentModel>('diaria');
   const [dailyRate, setDailyRate] = useState<number>(280);
+  const [monthlySalary, setMonthlySalary] = useState<number>(3000);
+  const [extraRate, setExtraRate] = useState<number>(150);
 
   // Address
   const [street, setStreet] = useState('');
@@ -74,7 +101,10 @@ export const CollaboratorsManager: React.FC = () => {
     setSkillsStr('Solda, Içamento Munck, Nivelamento');
     setAdmissionDate(new Date().toISOString().split('T')[0]);
     setStatus('disponivel');
+    setPaymentModel('diaria');
     setDailyRate(280);
+    setMonthlySalary(3000);
+    setExtraRate(150);
     setStreet('');
     setNumber('');
     setComplement('');
@@ -99,7 +129,10 @@ export const CollaboratorsManager: React.FC = () => {
     setSkillsStr(col.skills.join(', '));
     setAdmissionDate(col.admissionDate);
     setStatus(col.status);
+    setPaymentModel(col.paymentModel || 'diaria');
     setDailyRate(col.dailyRate || 280);
+    setMonthlySalary(col.monthlySalary || 3000);
+    setExtraRate(col.extraRate !== undefined ? col.extraRate : 150);
     setStreet(col.address.street);
     setNumber(col.address.number);
     setComplement(col.address.complement || '');
@@ -109,6 +142,142 @@ export const CollaboratorsManager: React.FC = () => {
     setZipCode(col.address.zipCode);
     setLandmark(col.address.landmark || '');
     setIsModalOpen(true);
+  };
+
+  const openExtraPaymentModal = (col: Collaborator, defaultType?: 'extra' | 'salario' | 'diaria') => {
+    setExtraPaymentCollab(col);
+    const isMensal = col.paymentModel === 'mensal';
+    const type = defaultType || (isMensal ? 'extra' : 'diaria');
+    const todayStr = new Date().toISOString().split('T')[0];
+    setExtraPaymentType(type);
+    setExtraDaysCount(1);
+    setExtraDate(todayStr);
+    setExtraWorkedDate(todayStr);
+    setExtraWorkedDatesList([todayStr]);
+    setExtraSaleId('');
+
+    if (type === 'extra') {
+      const rate = col.extraRate || col.dailyRate || 150;
+      setExtraAmount(String(rate));
+      setExtraReason('Dia extra / Viagem para outra cidade');
+    } else if (type === 'salario') {
+      setExtraAmount(String(col.monthlySalary || 3000));
+      setExtraReason('Pagamento de Salário Mensal');
+    } else {
+      setExtraAmount(String(col.dailyRate || 280));
+      setExtraReason('Diária de Campo / Bonificação');
+    }
+  };
+
+  const handlePaymentTypeChange = (type: 'extra' | 'salario' | 'diaria') => {
+    if (!extraPaymentCollab) return;
+    const todayStr = new Date().toISOString().split('T')[0];
+    setExtraPaymentType(type);
+    setExtraDaysCount(1);
+    setExtraWorkedDatesList([todayStr]);
+    if (type === 'extra') {
+      const rate = extraPaymentCollab.extraRate || extraPaymentCollab.dailyRate || 150;
+      setExtraAmount(String(rate));
+      setExtraReason('Dia extra / Viagem para outra cidade');
+    } else if (type === 'salario') {
+      setExtraAmount(String(extraPaymentCollab.monthlySalary || 3000));
+      setExtraReason('Pagamento de Salário Mensal');
+    } else {
+      setExtraAmount(String(extraPaymentCollab.dailyRate || 280));
+      setExtraReason('Diária de Campo / Bonificação');
+    }
+  };
+
+  const handleExtraDaysChange = (days: number) => {
+    const validDays = Math.max(1, days || 1);
+    setExtraDaysCount(validDays);
+    if (!extraPaymentCollab) return;
+    if (extraPaymentType === 'extra') {
+      const unitRate = extraPaymentCollab.extraRate || extraPaymentCollab.dailyRate || 150;
+      setExtraAmount(String(unitRate * validDays));
+    } else if (extraPaymentType === 'diaria') {
+      const unitRate = extraPaymentCollab.dailyRate || 280;
+      setExtraAmount(String(unitRate * validDays));
+    }
+  };
+
+  const handleUpdateWorkedDateAtIndex = (index: number, newDate: string) => {
+    const updated = [...extraWorkedDatesList];
+    updated[index] = newDate;
+    setExtraWorkedDatesList(updated);
+  };
+
+  const handleAddWorkedDate = () => {
+    const lastDateStr = extraWorkedDatesList[extraWorkedDatesList.length - 1] || new Date().toISOString().split('T')[0];
+    const nextDay = new Date(`${lastDateStr}T12:00:00`);
+    nextDay.setDate(nextDay.getDate() + 1);
+    const nextDateStr = nextDay.toISOString().split('T')[0];
+    const updated = [...extraWorkedDatesList, nextDateStr];
+    setExtraWorkedDatesList(updated);
+    handleExtraDaysChange(updated.length);
+  };
+
+  const handleRemoveWorkedDateAtIndex = (indexToRemove: number) => {
+    if (extraWorkedDatesList.length <= 1) return;
+    const updated = extraWorkedDatesList.filter((_, idx) => idx !== indexToRemove);
+    setExtraWorkedDatesList(updated);
+    handleExtraDaysChange(updated.length);
+  };
+
+  const handleLaunchExtraPayment = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!extraPaymentCollab) return;
+    const numericAmount = parseFloat(extraAmount);
+    if (!numericAmount || numericAmount <= 0) {
+      alert('Informe um valor válido maior que zero.');
+      return;
+    }
+
+    const workedDatesToRecord =
+      extraPaymentType === 'salario'
+        ? []
+        : extraWorkedDatesList.length > 0
+        ? extraWorkedDatesList
+        : extraWorkedDate
+        ? [extraWorkedDate]
+        : [];
+
+    const formattedWorkedDates = workedDatesToRecord.map(d => formatAdmissionDate(d)).join(', ');
+    const workedDatesSuffix = formattedWorkedDates
+      ? ` • ${workedDatesToRecord.length > 1 ? 'Dias' : 'Dia'}: ${formattedWorkedDates}`
+      : '';
+
+    const typeLabel =
+      extraPaymentType === 'extra'
+        ? `Valor Extra (${extraDaysCount}x${workedDatesSuffix})`
+        : extraPaymentType === 'salario'
+        ? 'Salário Mensal'
+        : `Diária (${extraDaysCount}x${workedDatesSuffix})`;
+
+    const description = `${typeLabel} — ${extraPaymentCollab.name}${extraReason.trim() ? ` (${extraReason.trim()})` : ''}`;
+
+    if (extraSaleId) {
+      addProjectExpense(extraSaleId, {
+        description,
+        amount: numericAmount,
+        category: 'mao_de_obra_montagem',
+        date: extraDate,
+        notes: `${extraReason.trim() || typeLabel}. Colaborador: ${extraPaymentCollab.name} (${extraPaymentCollab.role}).`,
+        collaboratorId: extraPaymentCollab.id,
+        daysCount: extraPaymentType === 'salario' ? 1 : extraDaysCount
+      });
+    } else {
+      addCashFlowEntry({
+        type: 'despesa',
+        category: 'mao_de_obra_montagem',
+        description,
+        amount: numericAmount,
+        date: extraDate,
+        clientOrSupplier: extraPaymentCollab.name
+      });
+    }
+
+    setExtraPaymentCollab(null);
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -148,7 +317,10 @@ export const CollaboratorsManager: React.FC = () => {
       skills,
       admissionDate,
       status,
-      dailyRate: Number(dailyRate),
+      paymentModel,
+      dailyRate: paymentModel === 'diaria' ? Number(dailyRate) : Number(extraRate || dailyRate || 0),
+      monthlySalary: paymentModel === 'mensal' ? Number(monthlySalary) : undefined,
+      extraRate: paymentModel === 'mensal' ? Number(extraRate) : undefined,
       completedInstallations: editingCollab ? editingCollab.completedInstallations : 0,
       address: {
         street,
@@ -299,28 +471,70 @@ export const CollaboratorsManager: React.FC = () => {
                     </div>
                   </div>
 
-                  {/* Faixa de Destaque: Custo da Diária & Ocupação Operacional */}
-                  <div className="flex items-center justify-between gap-2 bg-dark-900/80 px-3 py-2 rounded-xl border border-white/5">
-                    <div className="flex items-center gap-2">
-                      <span className="text-[10px] uppercase font-bold text-gray-400">Diária de Campo:</span>
-                      <span className="text-xs font-mono font-extrabold text-emerald-400">
-                        {formatCurrency(collab.dailyRate || 280)}
-                      </span>
-                      <span className="text-[10px] text-gray-500">/ dia</span>
+                  {/* Faixa de Destaque: Regime de Remuneração & Ocupação Operacional */}
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 bg-dark-900/80 px-3 py-2.5 rounded-xl border border-white/5">
+                    <div className="flex flex-wrap items-center gap-2">
+                      {collab.paymentModel === 'mensal' ? (
+                        <>
+                          <span className="px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider bg-gold-500/20 text-gold-400 border border-gold-500/30">
+                            Mensalista
+                          </span>
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-[10px] uppercase font-bold text-gray-400">Salário:</span>
+                            <span className="text-xs font-mono font-extrabold text-emerald-400">
+                              {formatCurrency(collab.monthlySalary || 0)}
+                            </span>
+                            <span className="text-[10px] text-gray-500">/ mês</span>
+                          </div>
+                          {(collab.extraRate || 0) > 0 && (
+                            <div className="flex items-center gap-1 pl-1.5 border-l border-white/10">
+                              <span className="text-[10px] uppercase font-bold text-amber-400/90">Extra:</span>
+                              <span className="text-xs font-mono font-bold text-amber-300">
+                                +{formatCurrency(collab.extraRate || 0)}
+                              </span>
+                            </div>
+                          )}
+                        </>
+                      ) : (
+                        <>
+                          <span className="px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider bg-emerald-500/15 text-emerald-300 border border-emerald-500/30">
+                            Diarista
+                          </span>
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-[10px] uppercase font-bold text-gray-400">Diária:</span>
+                            <span className="text-xs font-mono font-extrabold text-emerald-400">
+                              {formatCurrency(collab.dailyRate || 280)}
+                            </span>
+                            <span className="text-[10px] text-gray-500">/ dia</span>
+                          </div>
+                        </>
+                      )}
                     </div>
 
-                    <div className="text-[11px]">
-                      {assignedSales.length > 0 ? (
-                        <span className="text-amber-400 font-semibold flex items-center gap-1.5">
-                          <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse"></span>
-                          Alocado em {assignedSales.length} {assignedSales.length === 1 ? 'obra' : 'obras'}
-                        </span>
-                      ) : (
-                        <span className="text-emerald-400 font-medium flex items-center gap-1.5">
-                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
-                          Livre para escalas
-                        </span>
-                      )}
+                    <div className="flex items-center justify-between sm:justify-end gap-2.5">
+                      <button
+                        type="button"
+                        onClick={() => openExtraPaymentModal(collab)}
+                        className="px-2.5 py-1 rounded-lg bg-amber-500/15 hover:bg-amber-500 text-amber-300 hover:text-black border border-amber-500/30 text-[11px] font-bold transition-all flex items-center gap-1 cursor-pointer"
+                        title="Lançar valor extra (viagem / dia extra), diária ou salário no financeiro"
+                      >
+                        <Coins className="w-3.5 h-3.5" />
+                        <span>{collab.paymentModel === 'mensal' ? '+ Valor Extra / Salário' : '+ Lançar Diária / Extra'}</span>
+                      </button>
+
+                      <div className="text-[11px]">
+                        {assignedSales.length > 0 ? (
+                          <span className="text-amber-400 font-semibold flex items-center gap-1.5">
+                            <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse"></span>
+                            {assignedSales.length} {assignedSales.length === 1 ? 'obra' : 'obras'}
+                          </span>
+                        ) : (
+                          <span className="text-emerald-400 font-medium flex items-center gap-1.5">
+                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+                            Livre
+                          </span>
+                        )}
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -607,9 +821,64 @@ export const CollaboratorsManager: React.FC = () => {
 
           {/* Dados Profissionais */}
           <div className="pt-3 border-t border-white/5">
-            <h4 className="font-bold text-gold-400 uppercase tracking-wider mb-2">
-              3. Dados Profissionais & Função
+            <h4 className="font-bold text-gold-400 uppercase tracking-wider mb-3">
+              3. Dados Profissionais, Função & Remuneração
             </h4>
+
+            {/* Seletor de Modelo de Remuneração: Diarista vs Mensalista */}
+            <div className="mb-3">
+              <label className="text-gray-300 block mb-1.5 font-medium">Modelo de Remuneração *</label>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                <button
+                  type="button"
+                  onClick={() => setPaymentModel('diaria')}
+                  className={`p-3 rounded-xl border text-left transition-all cursor-pointer flex items-start justify-between ${
+                    paymentModel === 'diaria'
+                      ? 'bg-emerald-500/15 border-emerald-500/60 text-white'
+                      : 'bg-dark-950 border-white/10 text-gray-400 hover:text-white hover:border-white/20'
+                  }`}
+                >
+                  <div>
+                    <div className="font-bold text-xs text-emerald-400 flex items-center gap-1.5">
+                      <span>Por Diária (Diarista)</span>
+                    </div>
+                    <p className="text-[11px] text-gray-400 mt-0.5">
+                      Recebe valor fixo por dia trabalhado em montagem ou obra.
+                    </p>
+                  </div>
+                  <div className={`w-4 h-4 rounded-full border flex items-center justify-center shrink-0 mt-0.5 ${
+                    paymentModel === 'diaria' ? 'border-emerald-400 bg-emerald-500 text-black' : 'border-gray-600'
+                  }`}>
+                    {paymentModel === 'diaria' && <CheckCircle2 className="w-3 h-3 stroke-[3]" />}
+                  </div>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setPaymentModel('mensal')}
+                  className={`p-3 rounded-xl border text-left transition-all cursor-pointer flex items-start justify-between ${
+                    paymentModel === 'mensal'
+                      ? 'bg-gold-500/15 border-gold-500/60 text-white'
+                      : 'bg-dark-950 border-white/10 text-gray-400 hover:text-white hover:border-white/20'
+                  }`}
+                >
+                  <div>
+                    <div className="font-bold text-xs text-gold-400 flex items-center gap-1.5">
+                      <span>Mensalista (Salário Mensal + Valor Extra)</span>
+                    </div>
+                    <p className="text-[11px] text-gray-400 mt-0.5">
+                      Ganha salário fixo mensal + adicional em dias extras ou viagens.
+                    </p>
+                  </div>
+                  <div className={`w-4 h-4 rounded-full border flex items-center justify-center shrink-0 mt-0.5 ${
+                    paymentModel === 'mensal' ? 'border-gold-400 bg-gold-500 text-black' : 'border-gray-600'
+                  }`}>
+                    {paymentModel === 'mensal' && <CheckCircle2 className="w-3 h-3 stroke-[3]" />}
+                  </div>
+                </button>
+              </div>
+            </div>
+
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
               <div>
                 <label className="text-gray-300 block mb-1">Cargo / Função *</label>
@@ -623,22 +892,61 @@ export const CollaboratorsManager: React.FC = () => {
                 />
               </div>
 
-              <div>
-                <label className="text-gray-300 block mb-1">Valor da Diária (R$) *</label>
-                <div className="relative">
-                  <span className="absolute left-3 top-2 text-emerald-400 font-mono text-xs font-bold">R$</span>
-                  <input
-                    type="number"
-                    min="0"
-                    step="10"
-                    required
-                    placeholder="280"
-                    value={dailyRate}
-                    onChange={e => setDailyRate(Number(e.target.value))}
-                    className="w-full bg-dark-950 border border-emerald-500/30 rounded-xl pl-9 pr-3 py-2 text-white font-mono focus:outline-none focus:border-emerald-500"
-                  />
+              {paymentModel === 'diaria' ? (
+                <div>
+                  <label className="text-gray-300 block mb-1">Valor da Diária (R$) *</label>
+                  <div className="relative">
+                    <span className="absolute left-3 top-2 text-emerald-400 font-mono text-xs font-bold">R$</span>
+                    <input
+                      type="number"
+                      min="0"
+                      step="10"
+                      required
+                      placeholder="280"
+                      value={dailyRate}
+                      onChange={e => setDailyRate(Number(e.target.value))}
+                      className="w-full bg-dark-950 border border-emerald-500/30 rounded-xl pl-9 pr-3 py-2 text-white font-mono focus:outline-none focus:border-emerald-500"
+                    />
+                  </div>
                 </div>
-              </div>
+              ) : (
+                <>
+                  <div>
+                    <label className="text-gold-300 font-semibold block mb-1">Salário Mensal (R$) *</label>
+                    <div className="relative">
+                      <span className="absolute left-3 top-2 text-gold-400 font-mono text-xs font-bold">R$</span>
+                      <input
+                        type="number"
+                        min="0"
+                        step="50"
+                        required
+                        placeholder="3000"
+                        value={monthlySalary}
+                        onChange={e => setMonthlySalary(Number(e.target.value))}
+                        className="w-full bg-dark-950 border border-gold-500/40 rounded-xl pl-9 pr-3 py-2 text-white font-mono focus:outline-none focus:border-gold-500"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="text-amber-300 font-semibold block mb-1" title="Valor pago por dia extra trabalhado ou viagem para outra cidade">
+                      Valor Extra / Viagem (R$)
+                    </label>
+                    <div className="relative">
+                      <span className="absolute left-3 top-2 text-amber-400 font-mono text-xs font-bold">R$</span>
+                      <input
+                        type="number"
+                        min="0"
+                        step="10"
+                        placeholder="150"
+                        value={extraRate}
+                        onChange={e => setExtraRate(Number(e.target.value))}
+                        className="w-full bg-dark-950 border border-amber-500/30 rounded-xl pl-9 pr-3 py-2 text-white font-mono focus:outline-none focus:border-amber-500"
+                      />
+                    </div>
+                  </div>
+                </>
+              )}
 
               <div>
                 <label className="text-gray-300 block mb-1">Data de Admissão *</label>
@@ -651,7 +959,7 @@ export const CollaboratorsManager: React.FC = () => {
                 />
               </div>
 
-              <div>
+              <div className={paymentModel === 'mensal' ? 'sm:col-span-2 lg:col-span-4' : ''}>
                 <label className="text-gray-300 block mb-1">Status Operacional *</label>
                 <select
                   value={status}
@@ -695,6 +1003,265 @@ export const CollaboratorsManager: React.FC = () => {
             </button>
           </div>
         </form>
+      </Modal>
+
+      {/* Modal: Lançar Valor Extra / Pagamento do Colaborador */}
+      <Modal
+        isOpen={!!extraPaymentCollab}
+        onClose={() => setExtraPaymentCollab(null)}
+        title={extraPaymentCollab ? `Lançar Pagamento / Valor Extra — ${extraPaymentCollab.name}` : 'Lançar Pagamento'}
+        subtitle={
+          extraPaymentCollab?.paymentModel === 'mensal'
+            ? `Mensalista • Salário Fixo: ${formatCurrency(extraPaymentCollab.monthlySalary || 0)} • Extra Padrão: ${formatCurrency(extraPaymentCollab.extraRate || 0)}`
+            : `Diarista • Valor da Diária: ${formatCurrency(extraPaymentCollab?.dailyRate || 280)}`
+        }
+        maxWidth="lg"
+      >
+        {extraPaymentCollab && (
+          <form onSubmit={handleLaunchExtraPayment} className="space-y-4 text-xs">
+            {/* Tipo de pagamento */}
+            <div>
+              <label className="text-gray-300 font-semibold block mb-1.5">Tipo de Lançamento *</label>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                <button
+                  type="button"
+                  onClick={() => handlePaymentTypeChange('extra')}
+                  className={`p-2.5 rounded-xl border text-left transition-all cursor-pointer ${
+                    extraPaymentType === 'extra'
+                      ? 'bg-amber-500/20 border-amber-500 text-white'
+                      : 'bg-dark-950 border-white/10 text-gray-400 hover:text-white'
+                  }`}
+                >
+                  <div className="font-bold text-amber-400">Valor Extra / Viagem</div>
+                  <div className="text-[10px] text-gray-400 mt-0.5">Dia extra ou outra cidade</div>
+                </button>
+
+                {extraPaymentCollab.paymentModel === 'mensal' && (
+                  <button
+                    type="button"
+                    onClick={() => handlePaymentTypeChange('salario')}
+                    className={`p-2.5 rounded-xl border text-left transition-all cursor-pointer ${
+                      extraPaymentType === 'salario'
+                        ? 'bg-gold-500/20 border-gold-500 text-white'
+                        : 'bg-dark-950 border-white/10 text-gray-400 hover:text-white'
+                    }`}
+                  >
+                    <div className="font-bold text-gold-400">Salário Mensal</div>
+                    <div className="text-[10px] text-gray-400 mt-0.5">
+                      {formatCurrency(extraPaymentCollab.monthlySalary || 0)}
+                    </div>
+                  </button>
+                )}
+
+                <button
+                  type="button"
+                  onClick={() => handlePaymentTypeChange('diaria')}
+                  className={`p-2.5 rounded-xl border text-left transition-all cursor-pointer ${
+                    extraPaymentType === 'diaria'
+                      ? 'bg-emerald-500/20 border-emerald-500 text-white'
+                      : 'bg-dark-950 border-white/10 text-gray-400 hover:text-white'
+                  }`}
+                >
+                  <div className="font-bold text-emerald-400">Diária Avulsa</div>
+                  <div className="text-[10px] text-gray-400 mt-0.5">Diária de campo / Bônus</div>
+                </button>
+              </div>
+            </div>
+
+            {extraPaymentType !== 'salario' && (
+              <div className="bg-dark-900/90 p-3.5 rounded-xl border border-amber-500/20 space-y-2.5">
+                <div className="flex items-center justify-between gap-2">
+                  <div>
+                    <label className="text-amber-300 font-semibold block">
+                      Dia(s) em que fez o {extraPaymentType === 'extra' ? 'Extra / Viagem' : 'Trabalho'} *
+                    </label>
+                    <span className="text-[10px] text-gray-400">
+                      {extraWorkedDatesList.length} {extraWorkedDatesList.length === 1 ? 'dia selecionado' : 'dias selecionados'} — o valor total é calculado automaticamente pela quantidade de datas.
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleAddWorkedDate}
+                    className="px-3 py-1.5 rounded-xl bg-amber-500/15 hover:bg-amber-500 text-amber-300 hover:text-black border border-amber-500/30 font-bold text-xs transition-all flex items-center gap-1.5 cursor-pointer whitespace-nowrap shrink-0"
+                  >
+                    <Plus className="w-3.5 h-3.5 stroke-[2.5]" />
+                    <span>Adicionar outro dia</span>
+                  </button>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
+                  {extraWorkedDatesList.map((dateVal, idx) => (
+                    <div
+                      key={idx}
+                      className="flex items-center gap-2 bg-dark-950 border border-white/10 rounded-xl px-2.5 py-1.5"
+                    >
+                      <span className="text-[10px] font-bold text-amber-400 uppercase whitespace-nowrap">
+                        {idx + 1}º Dia:
+                      </span>
+                      <input
+                        type="date"
+                        required
+                        value={dateVal}
+                        onChange={e => handleUpdateWorkedDateAtIndex(idx, e.target.value)}
+                        className="flex-1 bg-transparent text-white text-xs font-mono focus:outline-none"
+                      />
+                      {extraWorkedDatesList.length > 1 && (
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveWorkedDateAtIndex(idx)}
+                          className="p-1 text-gray-500 hover:text-rose-400 transition-colors cursor-pointer"
+                          title="Remover este dia"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <label className="text-amber-300 font-semibold block mb-1">
+                  Valor Total a Pagar (R$) {extraPaymentType !== 'salario' && `(${extraWorkedDatesList.length}x)`} *
+                </label>
+                <div className="relative">
+                  <span className="absolute left-3 top-2 text-amber-400 font-mono text-xs font-bold">R$</span>
+                  <input
+                    type="number"
+                    min="0.01"
+                    step="0.01"
+                    required
+                    value={extraAmount}
+                    onChange={e => setExtraAmount(e.target.value)}
+                    className="w-full bg-dark-950 border border-amber-500/40 rounded-xl pl-9 pr-3 py-2 text-white font-mono font-bold focus:outline-none focus:border-amber-500"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="text-gray-300 block mb-1">Data do Pagamento *</label>
+                <input
+                  type="date"
+                  required
+                  value={extraDate}
+                  onChange={e => setExtraDate(e.target.value)}
+                  className="w-full bg-dark-950 border border-white/10 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-gold-500"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="text-gray-300 block mb-1">Motivo / Observação (Ex: Viagem outra cidade, Feriado, Dia extra)</label>
+              <input
+                type="text"
+                placeholder="Ex: Viagem de 2 dias para montagem em outra cidade"
+                value={extraReason}
+                onChange={e => setExtraReason(e.target.value)}
+                className="w-full bg-dark-950 border border-white/10 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-gold-500"
+              />
+            </div>
+
+            <div>
+              <label className="text-gray-300 block mb-1">Vincular a uma Obra Específica (Opcional)</label>
+              <select
+                value={extraSaleId}
+                onChange={e => setExtraSaleId(e.target.value)}
+                className="w-full bg-dark-950 border border-white/10 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-gold-500 cursor-pointer"
+              >
+                <option value="">Não vincular — Lançar direto no Fluxo de Caixa Geral</option>
+                {sales.map(s => (
+                  <option key={s.id} value={s.id}>
+                    {s.orderNumber} — {s.client.name} ({s.installationAddress.city}/{s.installationAddress.state})
+                  </option>
+                ))}
+              </select>
+              <p className="text-[10px] text-gray-500 mt-1">
+                Se vinculado a uma obra, o valor entra tanto nos Custos da Obra quanto como Saída no Financeiro.
+              </p>
+            </div>
+
+            {/* Histórico recente de lançamentos deste colaborador */}
+            {(() => {
+              const collabHistory = cashFlow.filter(
+                entry =>
+                  entry.type === 'despesa' &&
+                  (entry.clientOrSupplier === extraPaymentCollab.name ||
+                    entry.description.toLowerCase().includes(extraPaymentCollab.name.toLowerCase()))
+              );
+
+              if (collabHistory.length === 0) return null;
+
+              const handleRemoveHistoryItem = (item: CashFlowEntry) => {
+                if (!window.confirm(`Remover este lançamento de ${formatCurrency(item.amount)} (${item.description})?`)) {
+                  return;
+                }
+                if (item.saleOrderId) {
+                  const targetSale = sales.find(s => s.id === item.saleOrderId);
+                  const linkedExp = targetSale?.expenses?.find(e => e.cashFlowEntryId === item.id);
+                  if (linkedExp) {
+                    deleteProjectExpense(item.saleOrderId, linkedExp.id);
+                    return;
+                  }
+                }
+                deleteCashFlowEntry(item.id);
+              };
+
+              return (
+                <div className="bg-dark-900/70 p-3 rounded-xl border border-white/5 space-y-2">
+                  <span className="text-[10px] uppercase font-bold text-gray-400 block">
+                    Últimos Pagamentos / Extras Lançados para {extraPaymentCollab.name}:
+                  </span>
+                  <div className="space-y-1.5 max-h-36 overflow-y-auto pr-1">
+                    {collabHistory.map(item => (
+                      <div
+                        key={item.id}
+                        title={item.description}
+                        className="flex items-center justify-between gap-2 text-[11px] bg-dark-950 px-2.5 py-1.5 rounded-lg border border-white/5 hover:border-white/10 transition-colors"
+                      >
+                        <div className="truncate text-gray-300 flex-1 min-w-0">
+                          <span className="text-gray-500 font-mono mr-1.5">[{formatAdmissionDate(item.date)}]</span>
+                          <span>{item.description}</span>
+                        </div>
+                        <div className="flex items-center gap-2 shrink-0">
+                          <span className="font-mono font-bold text-amber-400">
+                            {formatCurrency(item.amount)}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveHistoryItem(item)}
+                            title="Remover este lançamento"
+                            className="p-1 rounded-md text-gray-400 hover:text-rose-400 hover:bg-rose-500/10 transition-colors cursor-pointer"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              );
+            })()}
+
+            <div className="flex items-center justify-end gap-3 pt-3 border-t border-white/5">
+              <button
+                type="button"
+                onClick={() => setExtraPaymentCollab(null)}
+                className="px-4 py-2 rounded-xl text-gray-400 hover:text-white transition-colors"
+              >
+                Cancelar
+              </button>
+              <button
+                type="submit"
+                className="flex items-center gap-1.5 bg-amber-500 hover:bg-amber-600 text-black font-bold px-5 py-2.5 rounded-xl text-xs transition-all cursor-pointer"
+              >
+                <DollarSign className="w-4 h-4 stroke-[2.5]" />
+                <span>Confirmar e Lançar no Caixa</span>
+              </button>
+            </div>
+          </form>
+        )}
       </Modal>
     </div>
   );

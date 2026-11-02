@@ -57,6 +57,8 @@ export interface ContainerModel {
 
 export type CollaboratorStatus = 'disponivel' | 'em_montagem' | 'ferias' | 'inativo';
 
+export type PaymentModel = 'diaria' | 'mensal';
+
 export interface Address {
   street: string;
   number: string;
@@ -81,7 +83,10 @@ export interface Collaborator {
   skills: string[];
   admissionDate: string;
   status: CollaboratorStatus;
-  dailyRate?: number;
+  paymentModel?: PaymentModel; // 'diaria' (padrão) ou 'mensal' (salário fixo + valor extra)
+  dailyRate?: number;          // Valor da diária (para diaristas)
+  monthlySalary?: number;      // Salário mensal fixo (para mensalistas)
+  extraRate?: number;          // Valor extra padrão por dia extra / viagem (para mensalistas)
   completedInstallations: number;
   pin?: string;            // PIN de 6 dígitos para login (login = CPF)
   mustChangePin?: boolean; // força troca do PIN provisório no primeiro acesso
@@ -99,7 +104,6 @@ export type ProductionStatus =
   | 'orcamento'
   | 'projeto_aprovado'
   | 'serralheria_corte'
-  | 'isolamento'
   | 'eletrica_hidraulica'
   | 'acabamento_pintura'
   | 'transporte'

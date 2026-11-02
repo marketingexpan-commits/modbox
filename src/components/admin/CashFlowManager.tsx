@@ -1,70 +1,87 @@
 import React, { useState, useMemo } from 'react';
-import { 
-  DollarSign, 
-  TrendingUp, 
-  TrendingDown, 
-  Plus, 
-  Search, 
-  Filter, 
-  ArrowUpRight, 
-  ArrowDownRight, 
-  PieChart as PieIcon, 
-  BarChart3, 
-  Calendar, 
-  Trash2, 
+import {
+  DollarSign,
+  TrendingUp,
+  TrendingDown,
+  Plus,
+  Search,
+  Filter,
+  ArrowUpRight,
+  ArrowDownRight,
+  PieChart as PieIcon,
+  BarChart3,
+  Calendar,
+  Trash2,
   CheckCircle2,
-  FileSpreadsheet
+  FileSpreadsheet,
+  ChevronLeft,
+  ChevronRight
 } from 'lucide-react';
 import { useModBox } from '../../context/ModBoxContext';
 import { CashFlowEntry, CashFlowType, CashFlowCategory } from '../../types';
 import { Modal } from '../common/Modal';
 
-type PeriodOption = 'mes_atual' | 'mes_anterior' | 'ano_atual' | 'tudo';
+type PeriodMode = 'mes' | 'ano' | 'tudo';
+
+const MONTH_NAMES = [
+  'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
+  'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'
+];
 
 export const CashFlowManager: React.FC = () => {
   const { cashFlow, addCashFlowEntry, deleteCashFlowEntry, stats, sales } = useModBox();
 
   const [searchTerm, setSearchTerm] = useState('');
-  const [selectedPeriod, setSelectedPeriod] = useState<PeriodOption>('mes_atual');
+  const [periodMode, setPeriodMode] = useState<PeriodMode>('mes');
+  const [selectedMonth, setSelectedMonth] = useState<number>(() => new Date().getMonth());
+  const [selectedYear, setSelectedYear] = useState<number>(() => new Date().getFullYear());
   const [typeFilter, setTypeFilter] = useState<'todos' | 'receita' | 'despesa' | 'obras'>('todos');
   const [isModalOpen, setIsModalOpen] = useState(false);
 
-  // Períodos dinâmicos calculados com base no calendário real
-  const periodInfo = useMemo(() => {
+  const handlePrevPeriod = () => {
+    if (periodMode === 'ano') {
+      setSelectedYear(prev => prev - 1);
+    } else {
+      setPeriodMode('mes');
+      if (selectedMonth === 0) {
+        setSelectedMonth(11);
+        setSelectedYear(prev => prev - 1);
+      } else {
+        setSelectedMonth(prev => prev - 1);
+      }
+    }
+  };
+
+  const handleNextPeriod = () => {
+    if (periodMode === 'ano') {
+      setSelectedYear(prev => prev + 1);
+    } else {
+      setPeriodMode('mes');
+      if (selectedMonth === 11) {
+        setSelectedMonth(0);
+        setSelectedYear(prev => prev + 1);
+      } else {
+        setSelectedMonth(prev => prev + 1);
+      }
+    }
+  };
+
+  const handleGoToCurrentMonth = () => {
     const now = new Date();
-    const curYear = now.getFullYear();
-    const curMonth = now.getMonth();
+    setPeriodMode('mes');
+    setSelectedMonth(now.getMonth());
+    setSelectedYear(now.getFullYear());
+  };
 
-    const curMonthPrefix = `${curYear}-${String(curMonth + 1).padStart(2, '0')}`;
-    const prevDate = new Date(curYear, curMonth - 1, 1);
-    const prevMonthPrefix = `${prevDate.getFullYear()}-${String(prevDate.getMonth() + 1).padStart(2, '0')}`;
-    const curYearPrefix = `${curYear}`;
-
-    const curMonthName = now.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
-    const prevMonthName = prevDate.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
-
-    const curMonthShort = now.toLocaleDateString('pt-BR', { month: 'short' }).replace('.', '');
-    const prevMonthShort = prevDate.toLocaleDateString('pt-BR', { month: 'short' }).replace('.', '');
-
-    const capitalize = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
-
-    const labels: Record<PeriodOption, string> = {
-      mes_atual: capitalize(curMonthName),
-      mes_anterior: capitalize(prevMonthName),
-      ano_atual: `Ano ${curYear}`,
-      tudo: 'Acumulado Geral'
-    };
-
-    return {
-      curMonthPrefix,
-      prevMonthPrefix,
-      curYearPrefix,
-      labels,
-      currentMonthBtn: `Este Mês (${capitalize(curMonthShort)}/${String(curYear).slice(-2)})`,
-      prevMonthBtn: `Mês Anterior (${capitalize(prevMonthShort)}/${String(prevDate.getFullYear()).slice(-2)})`,
-      yearBtn: `Ano ${curYear}`
-    };
-  }, []);
+  const activePeriodLabel = useMemo(() => {
+    if (periodMode === 'mes') {
+      return `${MONTH_NAMES[selectedMonth]} ${selectedYear}`;
+    }
+    if (periodMode === 'ano') {
+      return `Ano ${selectedYear}`;
+    }
+    return 'Todo o Histórico';
+  }, [periodMode, selectedMonth, selectedYear]);
 
   // Form State
   const [type, setType] = useState<CashFlowType>('receita');
@@ -100,17 +117,16 @@ export const CashFlowManager: React.FC = () => {
 
   // Filtra as entradas do fluxo de caixa de acordo com o período selecionado
   const periodCashFlow = useMemo(() => {
-    if (selectedPeriod === 'mes_atual') {
-      return cashFlow.filter(c => c.date.startsWith(periodInfo.curMonthPrefix));
+    if (periodMode === 'mes') {
+      const monthPrefix = `${selectedYear}-${String(selectedMonth + 1).padStart(2, '0')}`;
+      return cashFlow.filter(c => c.date.startsWith(monthPrefix));
     }
-    if (selectedPeriod === 'mes_anterior') {
-      return cashFlow.filter(c => c.date.startsWith(periodInfo.prevMonthPrefix));
-    }
-    if (selectedPeriod === 'ano_atual') {
-      return cashFlow.filter(c => c.date.startsWith(periodInfo.curYearPrefix));
+    if (periodMode === 'ano') {
+      const yearPrefix = `${selectedYear}`;
+      return cashFlow.filter(c => c.date.startsWith(yearPrefix));
     }
     return cashFlow; // 'tudo'
-  }, [cashFlow, selectedPeriod, periodInfo]);
+  }, [cashFlow, periodMode, selectedMonth, selectedYear]);
 
   // Estatísticas calculadas dinamicamente para o período escolhido
   const periodStats = useMemo(() => {
@@ -133,15 +149,12 @@ export const CashFlowManager: React.FC = () => {
     };
   }, [periodCashFlow]);
 
-  // Group monthly data for comparison chart with dynamic last 3 months
+  // Group monthly data for comparison chart based on selected month/year
   const monthlyData = useMemo(() => {
-    const now = new Date();
-    const curYear = now.getFullYear();
-    const curMonth = now.getMonth();
     const capitalize = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 
     return [-2, -1, 0].map(offset => {
-      const d = new Date(curYear, curMonth + offset, 1);
+      const d = new Date(selectedYear, selectedMonth + offset, 1);
       const prefix = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
       const monthLabel = capitalize(d.toLocaleDateString('pt-BR', { month: 'short' }).replace('.', '')) + '/' + String(d.getFullYear()).slice(-2);
 
@@ -159,7 +172,7 @@ export const CashFlowManager: React.FC = () => {
         lucro: receita - custo
       };
     });
-  }, [cashFlow]);
+  }, [cashFlow, selectedYear, selectedMonth]);
 
   // Group costs by category for the active period
   const costCategories = useMemo(() => {
@@ -185,11 +198,11 @@ export const CashFlowManager: React.FC = () => {
 
   const filteredEntries = periodCashFlow.filter(item => {
     const matchesSearch = item.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                          (item.clientOrSupplier && item.clientOrSupplier.toLowerCase().includes(searchTerm.toLowerCase()));
-    const matchesType = typeFilter === 'todos' 
-      ? true 
-      : typeFilter === 'obras' 
-        ? Boolean(item.saleOrderId) 
+      (item.clientOrSupplier && item.clientOrSupplier.toLowerCase().includes(searchTerm.toLowerCase()));
+    const matchesType = typeFilter === 'todos'
+      ? true
+      : typeFilter === 'obras'
+        ? Boolean(item.saleOrderId)
         : item.type === typeFilter;
     return matchesSearch && matchesType;
   });
@@ -218,48 +231,64 @@ export const CashFlowManager: React.FC = () => {
         </button>
       </div>
 
-      {/* Period Selector Bar */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-dark-850 p-3 sm:p-4 rounded-2xl border border-white/5">
-        <div className="flex items-center gap-2">
-          <Calendar className="w-4 h-4 text-gold-500 shrink-0" />
-          <span className="text-xs font-bold uppercase tracking-wider text-white">
-            Período Financeiro:
-          </span>
-          <span className="px-2 py-0.5 rounded text-[11px] font-mono font-bold bg-gold-500/15 text-gold-400 border border-gold-500/30">
-            {periodInfo.labels[selectedPeriod]}
-          </span>
+      {/* Period Selector Bar (Navegador de Mês e Ano estilo Agenda) */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 bg-dark-850 p-3 sm:p-4 rounded-2xl border border-white/5">
+        <div className="flex flex-wrap items-center gap-2.5">
+          <div className="flex items-center gap-2 mr-1">
+            <Calendar className="w-4 h-4 text-gold-500 shrink-0" />
+            <span className="text-xs font-bold uppercase tracking-wider text-white">
+              Período Financeiro:
+            </span>
+          </div>
+
+          {/* Seletor com Setas < Mês/Ano > */}
+          <div className="flex items-center bg-dark-950 p-1 rounded-xl border border-white/10">
+            <button
+              onClick={handlePrevPeriod}
+              className="p-1.5 text-gray-400 hover:text-white hover:bg-dark-800 rounded-lg transition-colors cursor-pointer"
+              title={periodMode === 'ano' ? 'Ano Anterior' : 'Mês Anterior'}
+            >
+              <ChevronLeft className="w-4 h-4" />
+            </button>
+            <div className="px-3 text-xs sm:text-sm font-bold text-gold-400 min-w-[140px] text-center font-mono">
+              {activePeriodLabel}
+            </div>
+            <button
+              onClick={handleNextPeriod}
+              className="p-1.5 text-gray-400 hover:text-white hover:bg-dark-800 rounded-lg transition-colors cursor-pointer"
+              title={periodMode === 'ano' ? 'Próximo Ano' : 'Próximo Mês'}
+            >
+              <ChevronRight className="w-4 h-4" />
+            </button>
+          </div>
+
+          <button
+            onClick={handleGoToCurrentMonth}
+            className="px-3 py-1.5 text-xs font-semibold rounded-xl bg-dark-800 hover:bg-dark-750 text-gold-400 border border-gold-500/20 transition-all cursor-pointer"
+          >
+            Mês Atual
+          </button>
         </div>
 
-        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0 scrollbar-none">
+        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 md:pb-0 scrollbar-none">
           <button
-            onClick={() => setSelectedPeriod('mes_atual')}
-            className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all whitespace-nowrap ${
-              selectedPeriod === 'mes_atual' ? 'bg-gold-500 text-black font-bold shadow-sm' : 'bg-dark-900 text-gray-400 hover:text-white border border-white/5'
-            }`}
+            onClick={() => setPeriodMode('mes')}
+            className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all whitespace-nowrap cursor-pointer ${periodMode === 'mes' ? 'bg-gold-500 text-black font-bold shadow-sm' : 'bg-dark-900 text-gray-400 hover:text-white border border-white/5'
+              }`}
           >
-            {periodInfo.currentMonthBtn}
+            Por Mês ({MONTH_NAMES[selectedMonth].slice(0, 3)}/{String(selectedYear).slice(-2)})
           </button>
           <button
-            onClick={() => setSelectedPeriod('mes_anterior')}
-            className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all whitespace-nowrap ${
-              selectedPeriod === 'mes_anterior' ? 'bg-gold-500 text-black font-bold shadow-sm' : 'bg-dark-900 text-gray-400 hover:text-white border border-white/5'
-            }`}
+            onClick={() => setPeriodMode('ano')}
+            className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all whitespace-nowrap cursor-pointer ${periodMode === 'ano' ? 'bg-gold-500 text-black font-bold shadow-sm' : 'bg-dark-900 text-gray-400 hover:text-white border border-white/5'
+              }`}
           >
-            {periodInfo.prevMonthBtn}
+            Ano {selectedYear}
           </button>
           <button
-            onClick={() => setSelectedPeriod('ano_atual')}
-            className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all whitespace-nowrap ${
-              selectedPeriod === 'ano_atual' ? 'bg-gold-500 text-black font-bold shadow-sm' : 'bg-dark-900 text-gray-400 hover:text-white border border-white/5'
-            }`}
-          >
-            {periodInfo.yearBtn}
-          </button>
-          <button
-            onClick={() => setSelectedPeriod('tudo')}
-            className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all whitespace-nowrap ${
-              selectedPeriod === 'tudo' ? 'bg-gold-500 text-black font-bold shadow-sm' : 'bg-dark-900 text-gray-400 hover:text-white border border-white/5'
-            }`}
+            onClick={() => setPeriodMode('tudo')}
+            className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all whitespace-nowrap cursor-pointer ${periodMode === 'tudo' ? 'bg-gold-500 text-black font-bold shadow-sm' : 'bg-dark-900 text-gray-400 hover:text-white border border-white/5'
+              }`}
           >
             Todo o Histórico
           </button>
@@ -273,7 +302,7 @@ export const CashFlowManager: React.FC = () => {
           <div className="flex items-center justify-between text-xs text-gray-400">
             <div>
               <span className="font-semibold uppercase tracking-wider block">Receitas Totais</span>
-              <span className="text-[10px] text-gold-400 font-mono font-semibold">({periodInfo.labels[selectedPeriod]})</span>
+              <span className="text-[10px] text-gold-400 font-mono font-semibold">({activePeriodLabel})</span>
             </div>
             <div className="p-2 rounded-xl bg-gold-500/10 text-gold-400">
               <ArrowUpRight className="w-4 h-4" />
@@ -292,7 +321,7 @@ export const CashFlowManager: React.FC = () => {
           <div className="flex items-center justify-between text-xs text-gray-400">
             <div>
               <span className="font-semibold uppercase tracking-wider block">Custos & Despesas</span>
-              <span className="text-[10px] text-rose-400 font-mono font-semibold">({periodInfo.labels[selectedPeriod]})</span>
+              <span className="text-[10px] text-rose-400 font-mono font-semibold">({activePeriodLabel})</span>
             </div>
             <div className="p-2 rounded-xl bg-rose-500/10 text-rose-400">
               <ArrowDownRight className="w-4 h-4" />
@@ -312,7 +341,7 @@ export const CashFlowManager: React.FC = () => {
           <div className="flex items-center justify-between text-xs text-gold-400">
             <div>
               <span className="font-bold uppercase tracking-wider block">Resultado Líquido</span>
-              <span className="text-[10px] text-emerald-400 font-mono font-semibold">({periodInfo.labels[selectedPeriod]})</span>
+              <span className="text-[10px] text-emerald-400 font-mono font-semibold">({activePeriodLabel})</span>
             </div>
             <div className="p-2 rounded-xl bg-gold-500/20 text-gold-400">
               <TrendingUp className="w-4 h-4" />
@@ -534,11 +563,10 @@ export const CashFlowManager: React.FC = () => {
                     {new Date(entry.date + 'T00:00:00').toLocaleDateString('pt-BR')}
                   </td>
                   <td className="py-3 px-3">
-                    <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${
-                      entry.type === 'receita'
+                    <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${entry.type === 'receita'
                         ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
                         : 'bg-rose-500/20 text-rose-300 border border-rose-500/30'
-                    }`}>
+                      }`}>
                       {entry.type}
                     </span>
                   </td>
@@ -558,9 +586,8 @@ export const CashFlowManager: React.FC = () => {
                   <td className="py-3 px-3 text-gray-400">
                     {entry.clientOrSupplier || '—'}
                   </td>
-                  <td className={`py-3 px-3 text-right font-mono font-bold text-sm ${
-                    entry.type === 'receita' ? 'text-emerald-400' : 'text-rose-400'
-                  }`}>
+                  <td className={`py-3 px-3 text-right font-mono font-bold text-sm ${entry.type === 'receita' ? 'text-emerald-400' : 'text-rose-400'
+                    }`}>
                     {entry.type === 'receita' ? '+' : '-'} {formatCurrency(entry.amount)}
                   </td>
                   <td className="py-3 px-3 text-center">
@@ -598,18 +625,16 @@ export const CashFlowManager: React.FC = () => {
               <button
                 type="button"
                 onClick={() => setType('receita')}
-                className={`py-2 rounded-xl font-bold transition-all ${
-                  type === 'receita' ? 'bg-emerald-500 text-black shadow-sm' : 'bg-dark-950 text-gray-400 border border-white/5'
-                }`}
+                className={`py-2 rounded-xl font-bold transition-all ${type === 'receita' ? 'bg-emerald-500 text-black shadow-sm' : 'bg-dark-950 text-gray-400 border border-white/5'
+                  }`}
               >
                 + Entrada / Receita
               </button>
               <button
                 type="button"
                 onClick={() => setType('despesa')}
-                className={`py-2 rounded-xl font-bold transition-all ${
-                  type === 'despesa' ? 'bg-rose-500 text-white shadow-sm' : 'bg-dark-950 text-gray-400 border border-white/5'
-                }`}
+                className={`py-2 rounded-xl font-bold transition-all ${type === 'despesa' ? 'bg-rose-500 text-white shadow-sm' : 'bg-dark-950 text-gray-400 border border-white/5'
+                  }`}
               >
                 - Saída / Despesa
               </button>

@@ -243,7 +243,7 @@ export const ProductionPipeline: React.FC = () => {
                         {stage?.label}
                       </span>
                       <span className="text-[11px] text-gray-400 font-mono">
-                        Etapa {stage?.stepNumber} de 9 ({progressPct}%)
+                        Etapa {stage?.stepNumber} de {PRODUCTION_STAGES_CONFIG.length} ({progressPct}%)
                       </span>
                     </div>
 
@@ -294,7 +294,7 @@ export const ProductionPipeline: React.FC = () => {
               <span className="text-[10px] uppercase font-bold text-gold-400 block mb-2">
                 Linha do Tempo Industrial
               </span>
-              <div className="grid grid-cols-3 sm:grid-cols-9 gap-1 text-center">
+              <div className="grid grid-cols-4 sm:grid-cols-8 gap-1 text-center">
                 {PRODUCTION_STAGES_CONFIG.map(st => {
                   const currentStIdx = PRODUCTION_STAGES_CONFIG.findIndex(s => s.id === activeModalSale.status);
                   const isDone = st.stepNumber <= currentStIdx + 1;

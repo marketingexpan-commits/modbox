@@ -207,17 +207,22 @@ export const SalesManager: React.FC = () => {
   };
 
   const handleLaunchCollabDailyRate = (saleId: string, collab: Collaborator, days: number) => {
-    const rate = collab.dailyRate || 280;
+    const isMensal = collab.paymentModel === 'mensal';
+    const rate = isMensal ? (collab.extraRate || collab.dailyRate || 150) : (collab.dailyRate || 280);
     const amount = rate * days;
     const targetSale = sales.find(s => s.id === saleId);
     const date = targetSale?.schedule?.scheduledDate || new Date().toISOString().split('T')[0];
 
     addProjectExpense(saleId, {
-      description: `Diária de Montagem (${days}x) — ${collab.name}`,
+      description: isMensal
+        ? `Valor Extra / Viagem (${days}x) — ${collab.name}`
+        : `Diária de Montagem (${days}x) — ${collab.name}`,
       amount,
       category: 'mao_de_obra_montagem',
       date,
-      notes: `${days} dia(s) a ${formatCurrency(rate)}/dia. Função: ${collab.role}.`,
+      notes: isMensal
+        ? `Mensalista — ${days} dia(s) extra/viagem a ${formatCurrency(rate)}/dia. Função: ${collab.role}.`
+        : `${days} dia(s) a ${formatCurrency(rate)}/dia. Função: ${collab.role}.`,
       collaboratorId: collab.id,
       daysCount: days
     });
@@ -231,14 +236,19 @@ export const SalesManager: React.FC = () => {
     const date = targetSale?.schedule?.scheduledDate || new Date().toISOString().split('T')[0];
 
     collabsToLaunch.forEach(({ collab, days }) => {
-      const rate = collab.dailyRate || 280;
+      const isMensal = collab.paymentModel === 'mensal';
+      const rate = isMensal ? (collab.extraRate || collab.dailyRate || 150) : (collab.dailyRate || 280);
       const amount = rate * days;
       addProjectExpense(saleId, {
-        description: `Diária de Montagem (${days}x) — ${collab.name}`,
+        description: isMensal
+          ? `Valor Extra / Viagem (${days}x) — ${collab.name}`
+          : `Diária de Montagem (${days}x) — ${collab.name}`,
         amount,
         category: 'mao_de_obra_montagem',
         date,
-        notes: `${days} dia(s) a ${formatCurrency(rate)}/dia. Função: ${collab.role}.`,
+        notes: isMensal
+          ? `Mensalista — ${days} dia(s) extra/viagem a ${formatCurrency(rate)}/dia. Função: ${collab.role}.`
+          : `${days} dia(s) a ${formatCurrency(rate)}/dia. Função: ${collab.role}.`,
         collaboratorId: collab.id,
         daysCount: days
       });
@@ -1170,7 +1180,7 @@ export const SalesManager: React.FC = () => {
               {(() => {
                 const assignedCols = collaborators.filter(c => selectedSaleForCosts.assignedCollaboratorIds?.includes(c.id));
                 const pendingCollabsList = assignedCols
-                  .filter(col => !expenses.some(e => e.collaboratorId === col.id || (e.category === 'mao_de_obra_montagem' && e.description.toLowerCase().includes(col.name.toLowerCase()))))
+                  .filter(col => col.paymentModel !== 'mensal' && !expenses.some(e => e.collaboratorId === col.id || (e.category === 'mao_de_obra_montagem' && e.description.toLowerCase().includes(col.name.toLowerCase()))))
                   .map(col => {
                     const days = collabDaysOverride[col.id] !== undefined ? collabDaysOverride[col.id] : (selectedSaleForCosts.schedule?.estimatedDurationDays || 1);
                     const amount = (col.dailyRate || 280) * days;
@@ -1187,13 +1197,13 @@ export const SalesManager: React.FC = () => {
                         </div>
                         <div>
                           <h4 className="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-2">
-                            Equipe Escalada & Diárias de Montagem
+                            Equipe Escalada & Diárias / Valores Extras
                             <span className="text-[10px] normal-case font-normal px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 font-mono">
                               {assignedCols.length} profissional(is)
                             </span>
                           </h4>
                           <p className="text-[11px] text-gray-400">
-                            Confira os dias trabalhados e lance as diárias no custo da obra e no caixa com 1 clique.
+                            Lance as diárias dos diaristas ou valores extras/viagens dos mensalistas com 1 clique.
                           </p>
                         </div>
                       </div>
@@ -1205,7 +1215,7 @@ export const SalesManager: React.FC = () => {
                           className="px-3 py-1.5 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-black font-bold text-xs flex items-center gap-1.5 transition-all self-start sm:self-auto shadow-lg shadow-emerald-500/10 cursor-pointer"
                         >
                           <DollarSign className="w-3.5 h-3.5 stroke-[3]" />
-                          <span>Lançar Todos os {pendingCollabsList.length} Pendentes ({formatCurrency(totalPendingAmount)})</span>
+                          <span>Lançar {pendingCollabsList.length} Diaristas ({formatCurrency(totalPendingAmount)})</span>
                         </button>
                       )}
                     </div>
@@ -1220,9 +1230,10 @@ export const SalesManager: React.FC = () => {
                     ) : (
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5 pt-1">
                         {assignedCols.map(col => {
+                          const isMensal = col.paymentModel === 'mensal';
                           const defaultDays = selectedSaleForCosts.schedule?.estimatedDurationDays || 1;
                           const currentDays = collabDaysOverride[col.id] !== undefined ? collabDaysOverride[col.id] : defaultDays;
-                          const rate = col.dailyRate || 280;
+                          const rate = isMensal ? (col.extraRate || col.dailyRate || 150) : (col.dailyRate || 280);
                           const totalAmount = rate * currentDays;
                           const launchedExpense = expenses.find(e => 
                             e.collaboratorId === col.id || 
@@ -1245,16 +1256,27 @@ export const SalesManager: React.FC = () => {
                                     {col.name.charAt(0)}
                                   </div>
                                   <div>
-                                    <div className="text-xs font-bold text-white leading-tight">{col.name}</div>
+                                    <div className="text-xs font-bold text-white leading-tight flex items-center gap-1.5">
+                                      <span>{col.name}</span>
+                                      <span className={`px-1.5 py-0.2 rounded text-[9px] font-bold uppercase ${
+                                        isMensal
+                                          ? 'bg-gold-500/20 text-gold-400 border border-gold-500/30'
+                                          : 'bg-emerald-500/15 text-emerald-300 border border-emerald-500/30'
+                                      }`}>
+                                        {isMensal ? 'Mensalista' : 'Diarista'}
+                                      </span>
+                                    </div>
                                     <div className="text-[10px] text-gray-400">{col.role}</div>
                                   </div>
                                 </div>
 
                                 <div className="text-right">
-                                  <span className="text-[11px] font-mono font-bold text-emerald-400">
+                                  <span className={`text-[11px] font-mono font-bold ${isMensal ? 'text-amber-400' : 'text-emerald-400'}`}>
                                     {formatCurrency(rate)}
                                   </span>
-                                  <span className="text-[10px] text-gray-500 block">/ dia</span>
+                                  <span className="text-[10px] text-gray-500 block">
+                                    {isMensal ? 'extra / dia' : '/ dia'}
+                                  </span>
                                 </div>
                               </div>
 
@@ -1262,7 +1284,9 @@ export const SalesManager: React.FC = () => {
                                 {!isLaunched ? (
                                   <>
                                     <div className="flex items-center gap-1.5 text-xs text-gray-300">
-                                      <label className="text-[10px] text-gray-400">Dias:</label>
+                                      <label className="text-[10px] text-gray-400">
+                                        {isMensal ? 'Dias Extras:' : 'Dias:'}
+                                      </label>
                                       <input
                                         type="number"
                                         min="0.5"
@@ -1276,17 +1300,21 @@ export const SalesManager: React.FC = () => {
                                         className="w-14 bg-dark-900 border border-white/10 rounded-lg px-2 py-1 text-xs text-center text-white font-mono focus:outline-none focus:border-emerald-500"
                                       />
                                       <span className="text-[11px] text-gray-400 font-mono">
-                                        = <strong className="text-emerald-400 font-bold">{formatCurrency(totalAmount)}</strong>
+                                        = <strong className={`${isMensal ? 'text-amber-400' : 'text-emerald-400'} font-bold`}>{formatCurrency(totalAmount)}</strong>
                                       </span>
                                     </div>
 
                                     <button
                                       type="button"
                                       onClick={() => handleLaunchCollabDailyRate(selectedSaleForCosts.id, col, currentDays)}
-                                      className="px-2.5 py-1 rounded-lg bg-emerald-500/20 hover:bg-emerald-500 text-emerald-300 hover:text-black font-bold text-[11px] transition-all flex items-center gap-1 border border-emerald-500/30 cursor-pointer"
+                                      className={`px-2.5 py-1 rounded-lg font-bold text-[11px] transition-all flex items-center gap-1 border cursor-pointer ${
+                                        isMensal
+                                          ? 'bg-amber-500/20 hover:bg-amber-500 text-amber-300 hover:text-black border-amber-500/30'
+                                          : 'bg-emerald-500/20 hover:bg-emerald-500 text-emerald-300 hover:text-black border-emerald-500/30'
+                                      }`}
                                     >
                                       <Plus className="w-3 h-3 stroke-[3]" />
-                                      <span>Lançar no Caixa</span>
+                                      <span>{isMensal ? 'Lançar Extra' : 'Lançar no Caixa'}</span>
                                     </button>
                                   </>
                                 ) : (

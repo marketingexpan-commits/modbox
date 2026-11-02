@@ -11,7 +11,10 @@ import {
   Truck,
   Plus,
   MapPin,
-  Filter
+  Filter,
+  Coins,
+  ChevronLeft,
+  ChevronRight
 } from 'lucide-react';
 import { useModBox } from '../../context/ModBoxContext';
 import { PRODUCTION_STAGES_CONFIG } from '../../data/mockData';
@@ -22,7 +25,12 @@ interface AdminDashboardProps {
   onOpenNewContainer: () => void;
 }
 
-type PeriodOption = 'mes_atual' | 'mes_anterior' | 'ano_atual' | 'tudo';
+type PeriodMode = 'mes' | 'ano' | 'tudo';
+
+const MONTH_NAMES = [
+  'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
+  'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'
+];
 
 export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   onNavigate,
@@ -30,58 +38,67 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   onOpenNewContainer,
 }) => {
   const { stats, sales, cashFlow, collaborators } = useModBox();
-  const [selectedPeriod, setSelectedPeriod] = useState<PeriodOption>('mes_atual');
+  const [periodMode, setPeriodMode] = useState<PeriodMode>('mes');
+  const [selectedMonth, setSelectedMonth] = useState<number>(() => new Date().getMonth());
+  const [selectedYear, setSelectedYear] = useState<number>(() => new Date().getFullYear());
 
-  // Períodos dinâmicos calculados com base no calendário real
-  const periodInfo = useMemo(() => {
+  const handlePrevPeriod = () => {
+    if (periodMode === 'ano') {
+      setSelectedYear(prev => prev - 1);
+    } else {
+      setPeriodMode('mes');
+      if (selectedMonth === 0) {
+        setSelectedMonth(11);
+        setSelectedYear(prev => prev - 1);
+      } else {
+        setSelectedMonth(prev => prev - 1);
+      }
+    }
+  };
+
+  const handleNextPeriod = () => {
+    if (periodMode === 'ano') {
+      setSelectedYear(prev => prev + 1);
+    } else {
+      setPeriodMode('mes');
+      if (selectedMonth === 11) {
+        setSelectedMonth(0);
+        setSelectedYear(prev => prev + 1);
+      } else {
+        setSelectedMonth(prev => prev + 1);
+      }
+    }
+  };
+
+  const handleGoToCurrentMonth = () => {
     const now = new Date();
-    const curYear = now.getFullYear();
-    const curMonth = now.getMonth();
+    setPeriodMode('mes');
+    setSelectedMonth(now.getMonth());
+    setSelectedYear(now.getFullYear());
+  };
 
-    const curMonthPrefix = `${curYear}-${String(curMonth + 1).padStart(2, '0')}`;
-    const prevDate = new Date(curYear, curMonth - 1, 1);
-    const prevMonthPrefix = `${prevDate.getFullYear()}-${String(prevDate.getMonth() + 1).padStart(2, '0')}`;
-    const curYearPrefix = `${curYear}`;
-
-    const curMonthName = now.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
-    const prevMonthName = prevDate.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
-
-    const curMonthShort = now.toLocaleDateString('pt-BR', { month: 'short' }).replace('.', '');
-    const prevMonthShort = prevDate.toLocaleDateString('pt-BR', { month: 'short' }).replace('.', '');
-
-    const capitalize = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
-
-    const labels: Record<PeriodOption, string> = {
-      mes_atual: capitalize(curMonthName),
-      mes_anterior: capitalize(prevMonthName),
-      ano_atual: `Ano ${curYear}`,
-      tudo: 'Acumulado Geral'
-    };
-
-    return {
-      curMonthPrefix,
-      prevMonthPrefix,
-      curYearPrefix,
-      labels,
-      currentMonthBtn: `Este Mês (${capitalize(curMonthShort)}/${String(curYear).slice(-2)})`,
-      prevMonthBtn: `Mês Anterior (${capitalize(prevMonthShort)}/${String(prevDate.getFullYear()).slice(-2)})`,
-      yearBtn: `Ano ${curYear}`
-    };
-  }, []);
+  const activePeriodLabel = useMemo(() => {
+    if (periodMode === 'mes') {
+      return `${MONTH_NAMES[selectedMonth]} ${selectedYear}`;
+    }
+    if (periodMode === 'ano') {
+      return `Ano ${selectedYear}`;
+    }
+    return 'Todo o Histórico';
+  }, [periodMode, selectedMonth, selectedYear]);
 
   // Filtra as entradas do fluxo de caixa de acordo com o período selecionado
   const filteredCashFlow = useMemo(() => {
-    if (selectedPeriod === 'mes_atual') {
-      return cashFlow.filter(c => c.date.startsWith(periodInfo.curMonthPrefix));
+    if (periodMode === 'mes') {
+      const monthPrefix = `${selectedYear}-${String(selectedMonth + 1).padStart(2, '0')}`;
+      return cashFlow.filter(c => c.date.startsWith(monthPrefix));
     }
-    if (selectedPeriod === 'mes_anterior') {
-      return cashFlow.filter(c => c.date.startsWith(periodInfo.prevMonthPrefix));
-    }
-    if (selectedPeriod === 'ano_atual') {
-      return cashFlow.filter(c => c.date.startsWith(periodInfo.curYearPrefix));
+    if (periodMode === 'ano') {
+      const yearPrefix = `${selectedYear}`;
+      return cashFlow.filter(c => c.date.startsWith(yearPrefix));
     }
     return cashFlow; // 'tudo'
-  }, [cashFlow, selectedPeriod, periodInfo]);
+  }, [cashFlow, periodMode, selectedMonth, selectedYear]);
 
   // Estatísticas calculadas dinamicamente para o período escolhido
   const periodStats = useMemo(() => {
@@ -89,15 +106,22 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       .filter(item => item.type === 'receita')
       .reduce((sum, item) => sum + item.amount, 0);
 
-    const costs = filteredCashFlow
-      .filter(item => item.type === 'despesa')
-      .reduce((sum, item) => sum + item.amount, 0);
+    const projectCostsList = filteredCashFlow.filter(item => item.type === 'despesa' && !!item.saleOrderId);
+    const generalExpensesList = filteredCashFlow.filter(item => item.type === 'despesa' && !item.saleOrderId);
+
+    const projectCosts = projectCostsList.reduce((sum, item) => sum + item.amount, 0);
+    const generalExpenses = generalExpensesList.reduce((sum, item) => sum + item.amount, 0);
+    const costs = projectCosts + generalExpenses;
 
     const profit = revenue - costs;
     const margin = revenue > 0 ? (profit / revenue) * 100 : 0;
 
     return {
       revenue,
+      projectCosts,
+      projectCostsCount: projectCostsList.length,
+      generalExpenses,
+      generalExpensesCount: generalExpensesList.length,
       costs,
       profit,
       margin,
@@ -147,47 +171,66 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         </div>
       </div>
 
-      {/* Period Selector Bar */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-dark-850 p-3 sm:p-4 rounded-2xl border border-white/5">
-        <div className="flex items-center gap-2">
-          <Calendar className="w-4 h-4 text-gold-500 shrink-0" />
-          <span className="text-xs font-bold uppercase tracking-wider text-white">
-            Período Financeiro:
-          </span>
-          <span className="px-2 py-0.5 rounded text-[11px] font-mono font-bold bg-gold-500/15 text-gold-400 border border-gold-500/30">
-            {periodInfo.labels[selectedPeriod]}
-          </span>
+      {/* Period Selector Bar (Navegador de Mês e Ano estilo Agenda) */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 bg-dark-850 p-3 sm:p-4 rounded-2xl border border-white/5">
+        <div className="flex flex-wrap items-center gap-2.5">
+          <div className="flex items-center gap-2 mr-1">
+            <Calendar className="w-4 h-4 text-gold-500 shrink-0" />
+            <span className="text-xs font-bold uppercase tracking-wider text-white">
+              Período Financeiro:
+            </span>
+          </div>
+
+          {/* Seletor com Setas < Mês/Ano > */}
+          <div className="flex items-center bg-dark-950 p-1 rounded-xl border border-white/10">
+            <button
+              onClick={handlePrevPeriod}
+              className="p-1.5 text-gray-400 hover:text-white hover:bg-dark-800 rounded-lg transition-colors cursor-pointer"
+              title={periodMode === 'ano' ? 'Ano Anterior' : 'Mês Anterior'}
+            >
+              <ChevronLeft className="w-4 h-4" />
+            </button>
+            <div className="px-3 text-xs sm:text-sm font-bold text-gold-400 min-w-[140px] text-center font-mono">
+              {activePeriodLabel}
+            </div>
+            <button
+              onClick={handleNextPeriod}
+              className="p-1.5 text-gray-400 hover:text-white hover:bg-dark-800 rounded-lg transition-colors cursor-pointer"
+              title={periodMode === 'ano' ? 'Próximo Ano' : 'Próximo Mês'}
+            >
+              <ChevronRight className="w-4 h-4" />
+            </button>
+          </div>
+
+          <button
+            onClick={handleGoToCurrentMonth}
+            className="px-3 py-1.5 text-xs font-semibold rounded-xl bg-dark-800 hover:bg-dark-750 text-gold-400 border border-gold-500/20 transition-all cursor-pointer"
+          >
+            Mês Atual
+          </button>
         </div>
 
-        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0 scrollbar-none">
+        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 md:pb-0 scrollbar-none">
           <button
-            onClick={() => setSelectedPeriod('mes_atual')}
-            className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all whitespace-nowrap ${
-              selectedPeriod === 'mes_atual' ? 'bg-gold-500 text-black font-bold shadow-sm' : 'bg-dark-900 text-gray-400 hover:text-white border border-white/5'
+            onClick={() => setPeriodMode('mes')}
+            className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all whitespace-nowrap cursor-pointer ${
+              periodMode === 'mes' ? 'bg-gold-500 text-black font-bold shadow-sm' : 'bg-dark-900 text-gray-400 hover:text-white border border-white/5'
             }`}
           >
-            {periodInfo.currentMonthBtn}
+            Por Mês ({MONTH_NAMES[selectedMonth].slice(0, 3)}/{String(selectedYear).slice(-2)})
           </button>
           <button
-            onClick={() => setSelectedPeriod('mes_anterior')}
-            className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all whitespace-nowrap ${
-              selectedPeriod === 'mes_anterior' ? 'bg-gold-500 text-black font-bold shadow-sm' : 'bg-dark-900 text-gray-400 hover:text-white border border-white/5'
+            onClick={() => setPeriodMode('ano')}
+            className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all whitespace-nowrap cursor-pointer ${
+              periodMode === 'ano' ? 'bg-gold-500 text-black font-bold shadow-sm' : 'bg-dark-900 text-gray-400 hover:text-white border border-white/5'
             }`}
           >
-            {periodInfo.prevMonthBtn}
+            Ano {selectedYear}
           </button>
           <button
-            onClick={() => setSelectedPeriod('ano_atual')}
-            className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all whitespace-nowrap ${
-              selectedPeriod === 'ano_atual' ? 'bg-gold-500 text-black font-bold shadow-sm' : 'bg-dark-900 text-gray-400 hover:text-white border border-white/5'
-            }`}
-          >
-            {periodInfo.yearBtn}
-          </button>
-          <button
-            onClick={() => setSelectedPeriod('tudo')}
-            className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all whitespace-nowrap ${
-              selectedPeriod === 'tudo' ? 'bg-gold-500 text-black font-bold shadow-sm' : 'bg-dark-900 text-gray-400 hover:text-white border border-white/5'
+            onClick={() => setPeriodMode('tudo')}
+            className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all whitespace-nowrap cursor-pointer ${
+              periodMode === 'tudo' ? 'bg-gold-500 text-black font-bold shadow-sm' : 'bg-dark-900 text-gray-400 hover:text-white border border-white/5'
             }`}
           >
             Todo o Histórico
@@ -196,68 +239,93 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       </div>
 
       {/* KPI Cards Row */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
         {/* Receita Total */}
-        <div className="bg-dark-850 border border-gold-500/30 rounded-2xl p-5 hover:border-gold-500 transition-all group">
+        <div className="bg-dark-850 border border-gold-500/30 rounded-2xl p-4 sm:p-5 hover:border-gold-500 transition-all group">
           <div className="flex items-center justify-between">
             <div>
               <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider block">Receita Realizada</span>
-              <span className="text-[10px] text-gold-400 font-mono font-semibold">({periodInfo.labels[selectedPeriod]})</span>
+              <span className="text-[10px] text-gold-400 font-mono font-semibold">({activePeriodLabel})</span>
             </div>
-            <div className="p-2.5 rounded-xl bg-gold-500/15 text-gold-500">
-              <DollarSign className="w-5 h-5" />
+            <div className="p-2 rounded-xl bg-gold-500/15 text-gold-500">
+              <DollarSign className="w-4 h-4 sm:w-5 sm:h-5" />
             </div>
           </div>
           <div className="mt-3">
-            <span className="text-2xl sm:text-3xl font-extrabold text-white font-mono">
+            <span className="text-xl sm:text-2xl font-extrabold text-white font-mono">
               {formatCurrency(periodStats.revenue)}
             </span>
           </div>
-          <div className="mt-2 flex items-center gap-1.5 text-xs text-emerald-400 font-medium">
-            <ArrowUpRight className="w-4 h-4" />
+          <div className="mt-2 flex items-center gap-1.5 text-[11px] text-emerald-400 font-medium">
+            <ArrowUpRight className="w-3.5 h-3.5" />
             <span>Fluxo de entrada positivo</span>
           </div>
         </div>
 
-        {/* Custos Operacionais */}
-        <div className="bg-dark-850 border border-white/5 rounded-2xl p-5 hover:border-white/15 transition-all group">
+        {/* Custos de Obras & Produção */}
+        <div className="bg-dark-850 border border-white/5 rounded-2xl p-4 sm:p-5 hover:border-white/15 transition-all group">
           <div className="flex items-center justify-between">
             <div>
-              <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider block">Custos & Produção</span>
-              <span className="text-[10px] text-rose-400 font-mono font-semibold">({periodInfo.labels[selectedPeriod]})</span>
+              <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider block">Custos de Obras</span>
+              <span className="text-[10px] text-rose-400 font-mono font-semibold">({activePeriodLabel})</span>
             </div>
-            <div className="p-2.5 rounded-xl bg-rose-500/10 text-rose-400">
-              <ArrowDownRight className="w-5 h-5" />
+            <div className="p-2 rounded-xl bg-rose-500/10 text-rose-400">
+              <ArrowDownRight className="w-4 h-4 sm:w-5 sm:h-5" />
             </div>
           </div>
           <div className="mt-3">
-            <span className="text-2xl sm:text-3xl font-extrabold text-white font-mono">
-              {formatCurrency(periodStats.costs)}
+            <span className="text-xl sm:text-2xl font-extrabold text-white font-mono">
+              {formatCurrency(periodStats.projectCosts)}
             </span>
           </div>
-          <div className="mt-2 text-xs text-gray-400">
-            Perfis de aço, montagem, insumos e fretes
+          <div className="mt-2 text-[11px] text-gray-400">
+            Vinculados a obras ({periodStats.projectCostsCount} {periodStats.projectCostsCount === 1 ? 'item' : 'itens'})
+          </div>
+        </div>
+
+        {/* Gastos Extras & Despesas Gerais (Sem Obra Específica) */}
+        <div
+          onClick={() => onNavigate('finance')}
+          className="bg-dark-850 border border-amber-500/25 rounded-2xl p-4 sm:p-5 hover:border-amber-500/50 transition-all group cursor-pointer"
+          title="Clique para ver detalhes no Financeiro"
+        >
+          <div className="flex items-center justify-between">
+            <div>
+              <span className="text-xs font-semibold text-amber-400 uppercase tracking-wider block">Extras & Outros Gastos</span>
+              <span className="text-[10px] text-amber-300/80 font-mono font-semibold">({activePeriodLabel})</span>
+            </div>
+            <div className="p-2 rounded-xl bg-amber-500/15 text-amber-400">
+              <Coins className="w-4 h-4 sm:w-5 sm:h-5" />
+            </div>
+          </div>
+          <div className="mt-3">
+            <span className="text-xl sm:text-2xl font-extrabold text-amber-400 font-mono">
+              {formatCurrency(periodStats.generalExpenses)}
+            </span>
+          </div>
+          <div className="mt-2 text-[11px] text-gray-400">
+            Extras, salários e fixos ({periodStats.generalExpensesCount} {periodStats.generalExpensesCount === 1 ? 'lançamento' : 'lançamentos'})
           </div>
         </div>
 
         {/* Lucro Líquido */}
-        <div className="bg-dark-850 border border-gold-500/40 rounded-2xl p-5 relative overflow-hidden group">
+        <div className="bg-dark-850 border border-gold-500/40 rounded-2xl p-4 sm:p-5 relative overflow-hidden group">
           <div className="flex items-center justify-between">
             <div>
               <span className="text-xs font-bold text-gold-500 uppercase tracking-wider block">Lucro Líquido</span>
-              <span className="text-[10px] text-emerald-400 font-mono font-semibold">({periodInfo.labels[selectedPeriod]})</span>
+              <span className="text-[10px] text-emerald-400 font-mono font-semibold">({activePeriodLabel})</span>
             </div>
-            <div className="p-2.5 rounded-xl bg-gold-500/15 text-gold-500">
-              <TrendingUp className="w-5 h-5" />
+            <div className="p-2 rounded-xl bg-gold-500/15 text-gold-500">
+              <TrendingUp className="w-4 h-4 sm:w-5 sm:h-5" />
             </div>
           </div>
           <div className="mt-3">
-            <span className="text-2xl sm:text-3xl font-extrabold text-gold-500 font-mono">
+            <span className="text-xl sm:text-2xl font-extrabold text-gold-500 font-mono">
               {formatCurrency(periodStats.profit)}
             </span>
           </div>
-          <div className="mt-2 flex items-center gap-1.5 text-xs text-gray-300 font-medium">
-            <span className="bg-gold-500/20 text-gold-500 px-2 py-0.5 rounded text-[11px] font-bold border border-gold-500/30">
+          <div className="mt-2 flex items-center gap-1.5 text-[11px] text-gray-300 font-medium">
+            <span className="bg-gold-500/20 text-gold-500 px-1.5 py-0.5 rounded text-[10px] font-bold border border-gold-500/30">
               {periodStats.margin.toFixed(1)}% Margem
             </span>
             <span>sobre faturamento</span>
@@ -265,21 +333,21 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         </div>
 
         {/* Obras & Produção em Andamento */}
-        <div className="bg-dark-850 border border-white/5 rounded-2xl p-5 hover:border-gold-500/30 transition-all group">
+        <div className="bg-dark-850 border border-white/5 rounded-2xl p-4 sm:p-5 hover:border-gold-500/30 transition-all group">
           <div className="flex items-center justify-between">
             <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Obras & Produção</span>
-            <div className="p-2.5 rounded-xl bg-blue-500/10 text-blue-400">
-              <Box className="w-5 h-5" />
+            <div className="p-2 rounded-xl bg-blue-500/10 text-blue-400">
+              <Box className="w-4 h-4 sm:w-5 sm:h-5" />
             </div>
           </div>
           <div className="mt-3 flex items-baseline gap-2">
-            <span className="text-2xl sm:text-3xl font-extrabold text-white font-mono">
+            <span className="text-xl sm:text-2xl font-extrabold text-white font-mono">
               {stats.activeProductionCount}
             </span>
             <span className="text-xs text-gray-400">em andamento</span>
           </div>
-          <div className="mt-2 flex items-center justify-between text-xs text-gray-400">
-            <span>{stats.scheduledMontagensCount} montagens agendadas</span>
+          <div className="mt-2 flex items-center justify-between text-[11px] text-gray-400">
+            <span>{stats.scheduledMontagensCount} agendadas</span>
             <span className="text-emerald-400 font-medium">{stats.completedCount} entregues</span>
           </div>
         </div>
@@ -382,7 +450,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             </div>
 
             <div className="space-y-2">
-              {PRODUCTION_STAGES_CONFIG.slice(1, 8).map(stage => {
+              {PRODUCTION_STAGES_CONFIG.slice(1, 7).map(stage => {
                 const count = sales.filter(s => s.status === stage.id).length;
                 return (
                   <div key={stage.id} className="flex items-center justify-between text-xs py-1.5 px-2 rounded-lg hover:bg-dark-800 transition-colors">
