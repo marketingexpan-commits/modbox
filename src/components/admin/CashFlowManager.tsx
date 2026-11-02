@@ -15,7 +15,8 @@ import {
   CheckCircle2,
   FileSpreadsheet,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  Printer
 } from 'lucide-react';
 import { useModBox } from '../../context/ModBoxContext';
 import { CashFlowEntry, CashFlowType, CashFlowCategory } from '../../types';
@@ -207,6 +208,421 @@ export const CashFlowManager: React.FC = () => {
     return matchesSearch && matchesType;
   });
 
+  const handlePrintPDF = () => {
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) {
+      alert('Por favor, permita pop-ups no navegador para gerar o PDF de impressão.');
+      return;
+    }
+
+    const totalReceitas = filteredEntries
+      .filter(e => e.type === 'receita')
+      .reduce((acc, e) => acc + e.amount, 0);
+    const totalDespesas = filteredEntries
+      .filter(e => e.type === 'despesa')
+      .reduce((acc, e) => acc + e.amount, 0);
+    const saldoLiquido = totalReceitas - totalDespesas;
+
+    const filterLabelMap: Record<'todos' | 'receita' | 'despesa' | 'obras', string> = {
+      todos: 'Todas as Movimentações',
+      receita: 'Apenas Receitas',
+      despesa: 'Apenas Despesas',
+      obras: 'Apenas Custos Vinculados a Obras'
+    };
+
+    const emittedAt = new Date().toLocaleString('pt-BR');
+    const logoUrl = `${window.location.origin}/modbox_logo_dourado.png`;
+
+    const rowsHtml = filteredEntries.length > 0
+      ? filteredEntries.map(entry => {
+          const formattedDate = new Date(entry.date + 'T00:00:00').toLocaleDateString('pt-BR');
+          const isReceita = entry.type === 'receita';
+          const linkedSale = entry.saleOrderId ? sales.find(s => s.id === entry.saleOrderId) : undefined;
+          const catLabel = categoryLabels[entry.category] || entry.category;
+
+          return `
+            <tr>
+              <td class="col-date">${formattedDate}</td>
+              <td class="col-type">
+                <span class="badge ${isReceita ? 'badge-receita' : 'badge-despesa'}">
+                  ${isReceita ? 'RECEITA' : 'DESPESA'}
+                </span>
+              </td>
+              <td class="col-cat">${catLabel}</td>
+              <td class="col-desc">
+                <div class="desc-text">${entry.description}</div>
+                ${entry.saleOrderId ? `<div class="obra-tag">Obra vinculada${linkedSale ? `: ${linkedSale.orderNumber} — ${linkedSale.client.name}` : ''}</div>` : ''}
+              </td>
+              <td class="col-client">${entry.clientOrSupplier || '—'}</td>
+              <td class="col-amount ${isReceita ? 'amount-receita' : 'amount-despesa'}">
+                ${isReceita ? '+' : '-'} ${formatCurrency(entry.amount)}
+              </td>
+            </tr>
+          `;
+        }).join('')
+      : `
+        <tr>
+          <td colspan="6" style="text-align: center; padding: 28px; color: #6b7280; font-style: italic;">
+            Nenhuma movimentação financeira encontrada para os filtros selecionados.
+          </td>
+        </tr>
+      `;
+
+    const htmlContent = `
+      <!DOCTYPE html>
+      <html lang="pt-BR">
+      <head>
+        <meta charset="UTF-8" />
+        <title>Extrato Financeiro ModBox — ${activePeriodLabel}</title>
+        <style>
+          @page {
+            size: A4 portrait;
+            margin: 12mm;
+          }
+          * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+          }
+          body {
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            color: #111827;
+            background: #ffffff;
+            font-size: 11px;
+            line-height: 1.45;
+          }
+          /* Cabeçalho com Logotipo ModBox */
+          .report-header {
+            background-color: #0d0d11;
+            color: #ffffff;
+            padding: 18px 24px;
+            border-radius: 10px 10px 0 0;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+          }
+          .brand-box {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+          }
+          .brand-logo {
+            height: 48px;
+            width: auto;
+            object-fit: contain;
+          }
+          .header-meta {
+            text-align: right;
+          }
+          .header-title {
+            font-size: 11px;
+            font-weight: 600;
+            color: #e5e7eb;
+            text-transform: uppercase;
+            letter-spacing: 1.2px;
+          }
+          .header-period {
+            font-size: 11px;
+            font-weight: 700;
+            color: #eab308;
+            margin-top: 3px;
+          }
+          .header-emitted {
+            font-size: 9px;
+            color: #9ca3af;
+            margin-top: 2px;
+          }
+
+          /* Linha Amarela Logo Abaixo do Cabeçalho */
+          .yellow-divider {
+            width: 100%;
+            height: 5px;
+            background: linear-gradient(90deg, #eab308 0%, #facc15 50%, #ca8a04 100%);
+            background-color: #eab308;
+            margin-bottom: 18px;
+          }
+
+          /* Detalhamento Abaixo da Linha Amarela */
+          .summary-bar {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 10px;
+            margin-bottom: 18px;
+          }
+          .summary-card {
+            border: 1px solid #e5e7eb;
+            background: #f9fafb;
+            border-radius: 8px;
+            padding: 10px 12px;
+          }
+          .summary-card.highlight {
+            border-color: #eab308;
+            background: #fefce8;
+          }
+          .summary-label {
+            font-size: 9px;
+            font-weight: 700;
+            text-transform: uppercase;
+            color: #6b7280;
+            letter-spacing: 0.5px;
+          }
+          .summary-value {
+            font-size: 14px;
+            font-weight: 800;
+            margin-top: 4px;
+            font-family: Consolas, Monaco, monospace;
+          }
+          .val-receita { color: #059669; }
+          .val-despesa { color: #e11d48; }
+          .val-saldo-pos { color: #047857; }
+          .val-saldo-neg { color: #be123c; }
+
+          .section-title {
+            font-size: 12px;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: #111827;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-bottom: 1px solid #e5e7eb;
+            padding-bottom: 5px;
+          }
+          .section-subtitle {
+            font-size: 10px;
+            font-weight: 600;
+            color: #6b7280;
+            text-transform: none;
+          }
+
+          table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 6px;
+          }
+          thead tr {
+            background-color: #111827;
+            color: #ffffff;
+          }
+          th {
+            text-align: left;
+            padding: 8px 8px;
+            font-size: 9.5px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+          }
+          th.col-amount {
+            text-align: right;
+          }
+          tbody tr {
+            border-bottom: 1px solid #e5e7eb;
+            page-break-inside: avoid;
+          }
+          tbody tr:nth-child(even) {
+            background-color: #f9fafb;
+          }
+          td {
+            padding: 8px 8px;
+            vertical-align: top;
+            font-size: 10.5px;
+          }
+          .col-date {
+            white-space: nowrap;
+            font-family: Consolas, Monaco, monospace;
+            color: #374151;
+            width: 76px;
+          }
+          .col-type {
+            width: 68px;
+          }
+          .col-cat {
+            width: 130px;
+            color: #374151;
+            font-weight: 600;
+          }
+          .col-desc {
+            color: #111827;
+          }
+          .desc-text {
+            font-weight: 600;
+            word-break: break-word;
+            white-space: normal;
+          }
+          .obra-tag {
+            display: inline-block;
+            margin-top: 3px;
+            padding: 1px 6px;
+            border-radius: 4px;
+            background: #fef9c3;
+            border: 1px solid #facc15;
+            color: #854d0e;
+            font-size: 9px;
+            font-weight: 700;
+          }
+          .col-client {
+            width: 120px;
+            color: #4b5563;
+          }
+          .col-amount {
+            white-space: nowrap;
+            text-align: right;
+            font-family: Consolas, Monaco, monospace;
+            font-weight: 800;
+            width: 105px;
+          }
+          .amount-receita { color: #059669; }
+          .amount-despesa { color: #e11d48; }
+
+          .badge {
+            display: inline-block;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 8.5px;
+            font-weight: 800;
+            letter-spacing: 0.4px;
+          }
+          .badge-receita {
+            background-color: #d1fae5;
+            color: #065f46;
+            border: 1px solid #6ee7b7;
+          }
+          .badge-despesa {
+            background-color: #ffe4e6;
+            color: #9f1239;
+            border: 1px solid #fda4af;
+          }
+
+          tfoot tr {
+            background-color: #f3f4f6;
+            border-top: 2px solid #111827;
+            font-weight: 800;
+          }
+          tfoot td {
+            padding: 10px 8px;
+            font-size: 11px;
+          }
+
+          .report-footer {
+            margin-top: 24px;
+            padding-top: 10px;
+            border-top: 1px solid #e5e7eb;
+            display: flex;
+            justify-content: space-between;
+            font-size: 9px;
+            color: #6b7280;
+          }
+        </style>
+      </head>
+      <body>
+        <!-- Cabeçalho com Logotipo da ModBox -->
+        <header class="report-header">
+          <div class="brand-box">
+            <img id="modbox-logo" src="${logoUrl}" alt="ModBox Logo" class="brand-logo" />
+          </div>
+          <div class="header-meta">
+            <div class="header-title">Detalhamento de Movimentação Financeira</div>
+            <div class="header-period">Período: ${activePeriodLabel}</div>
+            <div class="header-emitted">Emitido em: ${emittedAt}</div>
+          </div>
+        </header>
+
+        <!-- Linha Amarela Logo Abaixo -->
+        <div class="yellow-divider"></div>
+
+        <!-- Resumo do Período / Filtro -->
+        <section class="summary-bar">
+          <div class="summary-card">
+            <div class="summary-label">Total de Receitas</div>
+            <div class="summary-value val-receita">${formatCurrency(totalReceitas)}</div>
+          </div>
+          <div class="summary-card">
+            <div class="summary-label">Total de Custos / Despesas</div>
+            <div class="summary-value val-despesa">${formatCurrency(totalDespesas)}</div>
+          </div>
+          <div class="summary-card highlight">
+            <div class="summary-label">Resultado Líquido</div>
+            <div class="summary-value ${saldoLiquido >= 0 ? 'val-saldo-pos' : 'val-saldo-neg'}">
+              ${formatCurrency(saldoLiquido)}
+            </div>
+          </div>
+          <div class="summary-card">
+            <div class="summary-label">Lançamentos Listados</div>
+            <div class="summary-value" style="color: #111827;">${filteredEntries.length} registro(s)</div>
+          </div>
+        </section>
+
+        <!-- Tabela com o Detalhamento Completo -->
+        <section>
+          <div class="section-title">
+            <span>Extrato Detalhado de Movimentações</span>
+            <span class="section-subtitle">Filtro: ${filterLabelMap[typeFilter]}${searchTerm ? ` • Busca: "${searchTerm}"` : ''}</span>
+          </div>
+
+          <table>
+            <thead>
+              <tr>
+                <th class="col-date">Data</th>
+                <th class="col-type">Tipo</th>
+                <th class="col-cat">Categoria</th>
+                <th class="col-desc">Descrição Detalhada</th>
+                <th class="col-client">Cliente / Fornecedor</th>
+                <th class="col-amount">Valor</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${rowsHtml}
+            </tbody>
+            <tfoot>
+              <tr>
+                <td colspan="5" style="text-align: right; text-transform: uppercase;">Saldo Final das Movimentações Listadas:</td>
+                <td class="col-amount ${saldoLiquido >= 0 ? 'amount-receita' : 'amount-despesa'}">
+                  ${formatCurrency(saldoLiquido)}
+                </td>
+              </tr>
+            </tfoot>
+          </table>
+        </section>
+
+        <footer class="report-footer">
+          <span>MODBOX CONTÊINERES MODERNOS E COBERTURAS METÁLICAS</span>
+          <span>Relatório Financeiro • ${activePeriodLabel}</span>
+        </footer>
+
+        <script>
+          (function() {
+            var img = document.getElementById('modbox-logo');
+            var printed = false;
+            function triggerPrint() {
+              if (printed) return;
+              printed = true;
+              setTimeout(function() {
+                window.focus();
+                window.print();
+              }, 150);
+            }
+            if (img && !img.complete) {
+              img.onload = triggerPrint;
+              img.onerror = triggerPrint;
+              setTimeout(triggerPrint, 1000);
+            } else {
+              triggerPrint();
+            }
+          })();
+        </script>
+      </body>
+      </html>
+    `;
+
+    printWindow.document.open();
+    printWindow.document.write(htmlContent);
+    printWindow.document.close();
+  };
+
   return (
     <div className="space-y-6">
       {/* Top Header */}
@@ -224,7 +640,7 @@ export const CashFlowManager: React.FC = () => {
 
         <button
           onClick={() => setIsModalOpen(true)}
-          className="flex items-center gap-2 bg-gold-500 hover:bg-gold-600 text-black font-bold px-4 py-2.5 rounded-xl text-sm transition-all whitespace-nowrap self-start sm:self-auto"
+          className="flex items-center gap-2 bg-gold-500 hover:bg-gold-600 text-black font-bold px-4 py-2.5 rounded-xl text-sm transition-all whitespace-nowrap self-start sm:self-auto cursor-pointer"
         >
           <Plus className="w-4 h-4 stroke-[3]" />
           <span>Lançar Movimentação</span>
@@ -539,6 +955,16 @@ export const CashFlowManager: React.FC = () => {
                 Custos de Obras ({cashFlow.filter(c => Boolean(c.saleOrderId)).length})
               </button>
             </div>
+
+            {/* Botão Imprimir PDF do Extrato */}
+            <button
+              onClick={handlePrintPDF}
+              className="flex items-center gap-1.5 bg-gold-500 hover:bg-gold-600 text-black font-bold px-3.5 py-1.5 rounded-xl text-xs transition-all whitespace-nowrap cursor-pointer shadow-sm"
+              title="Imprimir ou Salvar PDF com o detalhamento da movimentação financeira"
+            >
+              <Printer className="w-3.5 h-3.5" />
+              <span>Imprimir PDF</span>
+            </button>
           </div>
         </div>
 
@@ -573,14 +999,14 @@ export const CashFlowManager: React.FC = () => {
                   <td className="py-3 px-3 text-gray-300">
                     {categoryLabels[entry.category] || entry.category}
                   </td>
-                  <td className="py-3 px-3 text-white font-medium max-w-xs">
+                  <td className="py-3 px-3 text-white font-medium max-w-md">
                     <div className="flex items-center gap-1.5 flex-wrap">
                       {entry.saleOrderId && (
                         <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-gold-500/15 text-gold-400 border border-gold-500/30 whitespace-nowrap">
                           Obra
                         </span>
                       )}
-                      <span className="truncate">{entry.description}</span>
+                      <span className="break-words">{entry.description}</span>
                     </div>
                   </td>
                   <td className="py-3 px-3 text-gray-400">
