@@ -1,6 +1,5 @@
 import React from 'react';
 import {
-  RefreshCw,
   Clock,
   UserCheck,
   LogOut,
@@ -29,8 +28,7 @@ export const Header: React.FC<HeaderProps> = ({ currentTab, setCurrentTab, onLog
     activeCollaboratorId,
     setActiveCollaboratorId,
     admins,
-    activeAdminId,
-    resetToDemoData
+    activeAdminId
   } = useModBox();
 
   const [currentTime, setCurrentTime] = React.useState('');
@@ -85,21 +83,6 @@ export const Header: React.FC<HeaderProps> = ({ currentTab, setCurrentTab, onLog
                 {admins.find(a => a.id === activeAdminId)?.name ?? 'Administrador'}
               </span>
             </div>
-          )}
-
-          {/* Reset Demo Data button (somente gestor) */}
-          {role === 'admin' && (
-            <button
-              onClick={() => {
-                if (window.confirm('Deseja recarregar os dados de demonstração da ModBox?')) {
-                  resetToDemoData();
-                }
-              }}
-              title="Recarregar Dados Demo"
-              className="p-2 sm:p-1.5 text-gray-400 hover:text-gold-500 hover:bg-dark-850 rounded-lg border border-transparent hover:border-gold-500/20 transition-all"
-            >
-              <RefreshCw className="w-3.5 h-3.5" />
-            </button>
           )}
 
           {onLogout && (

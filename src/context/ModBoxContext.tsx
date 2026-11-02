@@ -63,8 +63,6 @@ interface ModBoxContextType {
   addCashFlowEntry: (entry: Omit<CashFlowEntry, 'id'>) => void;
   deleteCashFlowEntry: (id: string) => void;
 
-  resetToDemoData: () => void;
-
   // Autenticação
   authenticateCollaborator: (cpf: string, pin: string) => Collaborator | null;
   changeCollaboratorPin: (id: string, newPin: string) => void;
@@ -582,19 +580,6 @@ export const ModBoxProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     });
   };
 
-  const resetToDemoData = () => {
-    localStorage.removeItem(`${STORAGE_KEY}_containers`);
-    localStorage.removeItem(`${STORAGE_KEY}_collaborators`);
-    localStorage.removeItem(`${STORAGE_KEY}_sales`);
-    localStorage.removeItem(`${STORAGE_KEY}_cashflow`);
-    localStorage.removeItem(`${STORAGE_KEY}_admins`);
-    setContainers(INITIAL_CONTAINERS);
-    setCollaborators(INITIAL_COLLABORATORS);
-    setSales(INITIAL_SALES);
-    setCashFlow(INITIAL_CASH_FLOW);
-    setAdmins(INITIAL_ADMINS);
-  };
-
   // Computed KPIs
   const stats = useMemo(() => {
     const totalRevenue = cashFlow
@@ -658,7 +643,6 @@ export const ModBoxProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       cashFlow,
       addCashFlowEntry,
       deleteCashFlowEntry,
-      resetToDemoData,
       authenticateCollaborator,
       changeCollaboratorPin,
       authenticateAdmin,
