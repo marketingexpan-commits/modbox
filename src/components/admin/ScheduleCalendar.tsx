@@ -226,13 +226,9 @@ export const ScheduleCalendar: React.FC<ScheduleCalendarProps> = ({
       {/* Top Header Banner */}
       <div className="bg-dark-850 p-4 sm:p-6 rounded-2xl border border-white/5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <div className="flex items-center gap-2 text-gold-400 font-semibold text-xs uppercase tracking-wider mb-1">
-            <CalendarIcon className="w-4 h-4" />
-            <span>Gestão Operacional & Comercial</span>
-          </div>
           <h2 className="text-2xl font-bold text-white">Agenda & Disponibilidade de Equipes</h2>
           <p className="text-sm text-gray-400 mt-0.5">
-            Cronograma de obras, montagens em campo e alocação de equipes.
+            Obras, montagens e equipes.
           </p>
         </div>
 

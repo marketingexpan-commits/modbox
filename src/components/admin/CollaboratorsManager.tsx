@@ -357,9 +357,9 @@ export const CollaboratorsManager: React.FC = () => {
       {/* Top Banner */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-dark-850 p-4 sm:p-6 rounded-2xl border border-white/5">
         <div>
-          <h2 className="text-2xl font-bold text-white">Cadastro e Gestão de Colaboradores</h2>
+          <h2 className="text-2xl font-bold text-white">Colaboradores</h2>
           <p className="text-sm text-gray-400 mt-0.5">
-            Gerencie os dados cadastrais (CPF, RG, endereço, contato) e especialidades dos montadores e técnicos.
+            Cadastro, especialidades e pagamentos da equipe.
           </p>
         </div>
 

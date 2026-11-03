@@ -628,13 +628,9 @@ export const CashFlowManager: React.FC = () => {
       {/* Top Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-dark-850 p-4 sm:p-6 rounded-2xl border border-white/5">
         <div>
-          <div className="flex items-center gap-2 text-gold-400 font-semibold text-xs uppercase tracking-wider mb-1">
-            <DollarSign className="w-4 h-4" />
-            <span>Gestão Financeira & Controladoria</span>
-          </div>
           <h2 className="text-2xl font-bold text-white">Gestão Financeira</h2>
           <p className="text-sm text-gray-400 mt-0.5">
-            Acompanhe receitas de produtos vendidos, custos com insumos industriais e lucro líquido.
+            Receitas, custos e lucro.
           </p>
         </div>
 

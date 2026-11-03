@@ -264,7 +264,7 @@ export const ContainersManager: React.FC<ContainersManagerProps> = ({ readOnly =
         <div>
           <h2 className="text-2xl font-bold text-white">Modelos e Dimensões</h2>
           <p className="text-sm text-gray-400 mt-0.5">
-            Cadastre as medidas exatas, especificações técnicas e custos dos produtos.
+            Medidas, especificações e custos.
           </p>
         </div>
 

@@ -60,13 +60,9 @@ export const ProductionPipeline: React.FC = () => {
       {/* Top Banner */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-dark-850 p-4 sm:p-6 rounded-2xl border border-white/5">
         <div>
-          <div className="flex items-center gap-2 text-gold-400 font-semibold text-xs uppercase tracking-wider mb-1">
-            <Truck className="w-4 h-4" />
-            <span>Linha de Produção & Montagem de Campo</span>
-          </div>
-          <h2 className="text-2xl font-bold text-white">Status do Andamento da Produção & Montagem</h2>
+          <h2 className="text-2xl font-bold text-white">Status da Produção & Montagem</h2>
           <p className="text-sm text-gray-400 mt-0.5">
-            Acompanhe o ciclo de vida completo de cada produto, desde a fabricação até a montagem final no cliente.
+            Andamento de cada produto, da fabricação à entrega.
           </p>
         </div>
 
