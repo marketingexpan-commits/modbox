@@ -1,5 +1,7 @@
 /// <reference types="vite/client" />
 
+declare const __APP_VERSION__: string;
+
 declare module 'firebase/app' {
   export function initializeApp(config: Record<string, any>): any;
 }

@@ -12,6 +12,7 @@ import { ScheduleCalendar } from './components/admin/ScheduleCalendar';
 import { EmployeeDashboard } from './components/employee/EmployeeDashboard';
 import { WelcomeScreen } from './components/common/WelcomeScreen';
 import { LoginScreen } from './components/common/LoginScreen';
+import { UpdateBanner } from './components/common/UpdateBanner';
 
 const SESSION_STORAGE_KEY = 'modbox_auth_session_v1';
 
@@ -143,6 +144,7 @@ const MainApp: React.FC = () => {
 export const App: React.FC = () => {
   return (
     <ModBoxProvider>
+      <UpdateBanner />
       <MainApp />
     </ModBoxProvider>
   );
