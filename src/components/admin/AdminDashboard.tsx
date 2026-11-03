@@ -148,7 +148,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
               Painel de Gestão
             </h1>
             <p className="text-gray-400 text-sm mt-1 max-w-xl">
-              Resumo da operação e do caixa em tempo real.
+              Resumo da operação e do caixa.
             </p>
           </div>
 
