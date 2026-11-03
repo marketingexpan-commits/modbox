@@ -284,11 +284,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         </div>
 
         {/* Gastos Extras & Despesas Gerais (Sem Obra Específica) */}
-        <div
-          onClick={() => onNavigate('finance')}
-          className="bg-dark-850 border border-amber-500/25 rounded-2xl p-4 sm:p-5 hover:border-amber-500/50 transition-all group cursor-pointer"
-          title="Clique para ver detalhes no Financeiro"
-        >
+        <div className="bg-dark-850 border border-amber-500/25 rounded-2xl p-4 sm:p-5 hover:border-amber-500/50 transition-all group">
           <div className="flex items-center justify-between">
             <div>
               <span className="text-xs font-semibold text-amber-400 uppercase tracking-wider block">Extras & Outros Gastos</span>

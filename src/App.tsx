@@ -32,7 +32,11 @@ const MainApp: React.FC = () => {
   const { role, setRole, setActiveCollaboratorId, setActiveAdminId } = useModBox();
   const initialSession = getInitialSession();
   const [loggedIn, setLoggedIn] = useState<boolean>(() => Boolean(initialSession?.loggedIn));
-  const [currentTab, setCurrentTab] = useState<string>(() => initialSession?.currentTab || (initialSession?.role === 'colaborador' ? 'agenda' : 'dashboard'));
+  const [currentTab, setCurrentTab] = useState<string>(() => {
+    const savedTab = initialSession?.currentTab;
+    if (savedTab === 'finance') return 'cashflow';
+    return savedTab || (initialSession?.role === 'colaborador' ? 'agenda' : 'dashboard');
+  });
   const [loginMode, setLoginMode] = useState<'colaborador' | 'admin' | null>(null);
 
   const handleNavigate = (tab: string) => {

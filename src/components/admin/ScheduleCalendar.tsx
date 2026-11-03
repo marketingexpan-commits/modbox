@@ -232,7 +232,7 @@ export const ScheduleCalendar: React.FC<ScheduleCalendarProps> = ({
           </div>
           <h2 className="text-2xl font-bold text-white">Agenda & Disponibilidade de Equipes</h2>
           <p className="text-sm text-gray-400 mt-0.5">
-            Consulte os dias ocupados por obras, a alocação de soldadores e montadores e identifique datas livres para fechar novas vendas.
+            Cronograma de obras, montagens em campo e alocação de equipes.
           </p>
         </div>
 

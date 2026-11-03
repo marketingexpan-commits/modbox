@@ -9,14 +9,39 @@ import {
 } from 'firebase/firestore';
 import { db } from './firebase';
 
-// Tracks which collections have already been seeded in this session.
-// This prevents re-seeding when the user intentionally deletes all items.
-const seededCollections = new Set<string>();
+// Tracks which collections have already been seeded (persisted in localStorage across page reloads).
+// This prevents re-seeding when the user intentionally deletes all items and presses F5.
+const SEEDED_STORAGE_KEY = 'modbox_firestore_seeded_v1';
+
+function isCollectionSeeded(collectionName: string): boolean {
+  try {
+    const raw = localStorage.getItem(SEEDED_STORAGE_KEY);
+    if (!raw) return false;
+    const list: string[] = JSON.parse(raw);
+    return Array.isArray(list) && list.includes(collectionName);
+  } catch {
+    return false;
+  }
+}
+
+function markCollectionSeeded(collectionName: string): void {
+  try {
+    const raw = localStorage.getItem(SEEDED_STORAGE_KEY);
+    const list: string[] = raw ? JSON.parse(raw) : [];
+    if (!list.includes(collectionName)) {
+      list.push(collectionName);
+      localStorage.setItem(SEEDED_STORAGE_KEY, JSON.stringify(list));
+    }
+  } catch {
+    // ignore storage errors
+  }
+}
 
 /**
  * Subscribes to a Firestore collection with real-time updates.
- * Seeds with initialData ONLY on the very first time the collection is found empty.
- * After the user explicitly empties a collection, it will remain empty.
+ * Seeds with initialData ONLY on the very first time the collection is found empty
+ * and has never been initialized or modified before.
+ * After the user explicitly empties a collection, it will remain empty even after F5.
  */
 export function subscribeToCollection<T extends { id: string }>(
   collectionName: string,
@@ -25,12 +50,11 @@ export function subscribeToCollection<T extends { id: string }>(
 ): () => void {
   const colRef = collection(db, collectionName);
 
-  // Check if seeding is needed (only once per session per collection)
+  // Check if seeding is needed (only if never seeded/modified before)
   getDocs(colRef)
     .then((snapshot: any) => {
-      if (snapshot.empty && initialData.length > 0 && !seededCollections.has(collectionName)) {
-        // Mark as seeded immediately so concurrent calls don't re-seed
-        seededCollections.add(collectionName);
+      if (snapshot.empty && initialData.length > 0 && !isCollectionSeeded(collectionName)) {
+        markCollectionSeeded(collectionName);
         const batch = writeBatch(db);
         initialData.forEach((item) => {
           const docRef = doc(colRef, item.id);
@@ -40,8 +64,8 @@ export function subscribeToCollection<T extends { id: string }>(
           console.warn(`[Firestore] Could not seed ${collectionName}:`, err);
         });
       } else if (!snapshot.empty) {
-        // Collection already has data — mark as seeded so we never overwrite
-        seededCollections.add(collectionName);
+        // Collection already has data — mark as seeded permanently so we never re-seed after deletions
+        markCollectionSeeded(collectionName);
       }
     })
     .catch((err: any) => {
@@ -73,6 +97,7 @@ export async function setFirestoreDoc<T extends { id: string }>(
   item: T
 ): Promise<void> {
   try {
+    markCollectionSeeded(collectionName);
     const docRef = doc(db, collectionName, item.id);
     const cleanItem = JSON.parse(JSON.stringify(item));
     await setDoc(docRef, cleanItem, { merge: true });
@@ -89,6 +114,7 @@ export async function deleteFirestoreDoc(
   id: string
 ): Promise<void> {
   try {
+    markCollectionSeeded(collectionName);
     const docRef = doc(db, collectionName, id);
     await deleteDoc(docRef);
   } catch (err) {

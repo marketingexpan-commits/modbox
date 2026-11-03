@@ -138,18 +138,11 @@ export const ModBoxProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       const saved = localStorage.getItem(`${STORAGE_KEY}_containers`);
       if (saved) {
         const parsed: ContainerModel[] = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          const withType = parsed.map(c => ({
+        if (Array.isArray(parsed)) {
+          return parsed.map(c => ({
             ...c,
             productType: c.productType || 'modular'
           }));
-          const hasCobertura = withType.some(c => c.productType === 'cobertura_metalica');
-          const hasEstrutura = withType.some(c => c.productType === 'estrutura_metalica');
-          if (!hasCobertura || !hasEstrutura) {
-            const missing = INITIAL_CONTAINERS.filter(ic => !withType.some(c => c.id === ic.id));
-            return [...withType, ...missing];
-          }
-          return withType;
         }
       }
       return INITIAL_CONTAINERS;
@@ -221,8 +214,8 @@ export const ModBoxProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   // Real-time synchronization with Firestore
   useEffect(() => {
     const unsubAdmins = subscribeToCollection<AdminUser>('admins', setAdmins, INITIAL_ADMINS);
-    const unsubContainers = subscribeToCollection<ContainerModel>('containers', setContainers, INITIAL_CONTAINERS);
-    const unsubCollaborators = subscribeToCollection<Collaborator>('collaborators', setCollaborators, INITIAL_COLLABORATORS);
+    const unsubContainers = subscribeToCollection<ContainerModel>('containers', setContainers, []);
+    const unsubCollaborators = subscribeToCollection<Collaborator>('collaborators', setCollaborators, []);
     const unsubSales = subscribeToCollection<SaleOrder>('sales', setSales, INITIAL_SALES);
     const unsubCashFlow = subscribeToCollection<CashFlowEntry>('cashflow', setCashFlow, INITIAL_CASH_FLOW);
 
