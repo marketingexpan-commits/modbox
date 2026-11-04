@@ -18,6 +18,7 @@ import {
 import { useModBox } from '../../context/ModBoxContext';
 import { SaleOrder, ProjectPhoto } from '../../types';
 import { PRODUCTION_STAGES_CONFIG } from '../../data/mockData';
+import { CollaboratorAvatar } from '../common/CollaboratorAvatar';
 
 export const EmployeeDashboard: React.FC = () => {
   const { 
@@ -125,9 +126,18 @@ export const EmployeeDashboard: React.FC = () => {
       <div className="bg-dark-850 border border-gold-500/30 rounded-2xl p-5 sm:p-6 shadow-md relative overflow-hidden">
         <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div className="flex items-center gap-4">
-            <div className="w-14 h-14 rounded-2xl bg-gold-500/15 border border-gold-500/40 flex items-center justify-center text-gold-500 font-extrabold text-2xl">
-              <HardHat className="w-7 h-7 text-gold-500" />
-            </div>
+            {activeCollab ? (
+              <CollaboratorAvatar
+                name={activeCollab.name}
+                photoUrl={activeCollab.photoUrl}
+                sizeClass="w-16 h-[5.333rem]"
+                textClass="text-2xl"
+              />
+            ) : (
+              <div className="w-14 h-14 rounded-2xl bg-gold-500/15 border border-gold-500/40 flex items-center justify-center text-gold-500 font-extrabold text-2xl">
+                <HardHat className="w-7 h-7 text-gold-500" />
+              </div>
+            )}
             <div>
               <div className="flex items-center gap-2 text-xs font-bold text-gold-500 uppercase tracking-wider">
                 <span className="w-2 h-2 rounded-full bg-emerald-500"></span>

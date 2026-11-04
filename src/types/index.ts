@@ -88,6 +88,7 @@ export interface Collaborator {
   monthlySalary?: number;      // Salário mensal fixo (para mensalistas)
   extraRate?: number;          // Valor extra padrão por dia extra / viagem (para mensalistas)
   completedInstallations: number;
+  photoUrl?: string;       // Foto 3x4 do colaborador (imagem JPEG reduzida em formato data URL)
   pin?: string;            // PIN de 6 dígitos para login (login = CPF)
   mustChangePin?: boolean; // força troca do PIN provisório no primeiro acesso
 }

@@ -15,11 +15,17 @@ import {
   Shield, 
   FileText,
   DollarSign,
-  Coins
+  Coins,
+  Camera,
+  Image as ImageIcon,
+  X
 } from 'lucide-react';
 import { useModBox } from '../../context/ModBoxContext';
 import { Collaborator, CollaboratorStatus, PaymentModel, CashFlowEntry } from '../../types';
 import { Modal } from '../common/Modal';
+import { CollaboratorAvatar } from '../common/CollaboratorAvatar';
+import { CameraCaptureModal } from '../common/CameraCaptureModal';
+import { processProfilePhoto } from '../../services/profilePhoto';
 
 const formatCurrency = (val: number) =>
   (val || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
@@ -49,6 +55,34 @@ export const CollaboratorsManager: React.FC = () => {
   const [statusFilter, setStatusFilter] = useState<string>('todos');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingCollab, setEditingCollab] = useState<Collaborator | null>(null);
+  const [viewingCollabId, setViewingCollabId] = useState<string | null>(null);
+
+  // Foto 3x4 do colaborador
+  const [photoUrl, setPhotoUrl] = useState<string>('');
+  const [photoLoading, setPhotoLoading] = useState(false);
+  const [isCameraOpen, setIsCameraOpen] = useState(false);
+
+  // Celular/tablet: usa a câmera nativa do aparelho. Notebook/desktop: abre a webcam no sistema.
+  const isTouchDevice =
+    typeof window !== 'undefined' && window.matchMedia('(pointer: coarse)').matches;
+
+  const processPhotoFile = async (file: File) => {
+    setPhotoLoading(true);
+    try {
+      setPhotoUrl(await processProfilePhoto(file));
+    } catch (err: any) {
+      alert(err?.message || 'Não foi possível carregar a foto. Tente novamente.');
+    } finally {
+      setPhotoLoading(false);
+    }
+  };
+
+  const handlePhotoSelected = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+    await processPhotoFile(file);
+  };
 
   // Modal Lançar Valor Extra / Pagamento
   const [extraPaymentCollab, setExtraPaymentCollab] = useState<Collaborator | null>(null);
@@ -90,6 +124,7 @@ export const CollaboratorsManager: React.FC = () => {
 
   const openNewModal = () => {
     setEditingCollab(null);
+    setPhotoUrl('');
     setName('');
     setCpf('');
     setPinInput('');
@@ -118,6 +153,7 @@ export const CollaboratorsManager: React.FC = () => {
 
   const openEditModal = (col: Collaborator) => {
     setEditingCollab(col);
+    setPhotoUrl(col.photoUrl || '');
     setName(col.name);
     setCpf(col.cpf);
     setPinInput('');
@@ -322,6 +358,7 @@ export const CollaboratorsManager: React.FC = () => {
       monthlySalary: paymentModel === 'mensal' ? Number(monthlySalary) : undefined,
       extraRate: paymentModel === 'mensal' ? Number(extraRate) : undefined,
       completedInstallations: editingCollab ? editingCollab.completedInstallations : 0,
+      photoUrl,
       address: {
         street,
         number,
@@ -422,207 +459,335 @@ export const CollaboratorsManager: React.FC = () => {
           return (
             <div
               key={collab.id}
-              className="bg-dark-850 border border-white/10 rounded-2xl p-4 sm:p-6 hover:border-gold-500/30 transition-all flex flex-col justify-between space-y-4"
+              onClick={() => setViewingCollabId(collab.id)}
+              className="bg-dark-850 border border-white/10 rounded-2xl p-4 hover:border-gold-500/40 transition-all cursor-pointer space-y-3"
+              title="Clique para ver a ficha completa"
             >
-              <div>
-                {/* Header: Name, Role & Status + Action Buttons */}
-                <div className="border-b border-white/5 pb-3 space-y-3">
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="flex items-center gap-3 min-w-0 flex-1">
-                      <div className="w-12 h-12 rounded-2xl bg-gold-500/10 border border-gold-500/30 flex items-center justify-center text-gold-500 font-bold text-lg shrink-0">
-                        {collab.name.charAt(0)}
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <h3 className="font-bold text-white text-base leading-tight break-words">{collab.name}</h3>
-                        <p className="text-xs text-gold-400 font-medium mt-0.5 leading-snug">{collab.role}</p>
-                      </div>
+              {/* Foto, nome, cargo e status */}
+              <div className="flex items-start gap-3">
+                <CollaboratorAvatar
+                  name={collab.name}
+                  photoUrl={collab.photoUrl}
+                  sizeClass="w-14 h-[4.667rem]"
+                />
+
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0">
+                      <h3 className="font-bold text-white text-base leading-tight break-words">{collab.name}</h3>
+                      <p className="text-xs text-gold-400 font-medium mt-0.5 leading-snug">{collab.role}</p>
                     </div>
-
-                    {/* Grupo de Status & Ações */}
-                    <div className="flex items-center gap-1.5 shrink-0 pt-0.5">
-                      <span className={`px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider ${
-                        collab.status === 'em_montagem'
-                          ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
-                          : collab.status === 'disponivel'
-                          ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
-                          : 'bg-gray-500/20 text-gray-400'
-                      }`}>
-                        {collab.status === 'em_montagem' ? 'Em Obra' : collab.status === 'disponivel' ? 'Disponível' : collab.status}
-                      </span>
-
-                      <button
-                        onClick={() => openEditModal(collab)}
-                        title="Editar Colaborador"
-                        className="p-1.5 text-gray-400 hover:text-gold-400 hover:bg-dark-750 rounded-lg transition-colors cursor-pointer"
-                      >
-                        <Edit3 className="w-4 h-4" />
-                      </button>
-                      <button
-                        onClick={() => {
-                          if (window.confirm(`Excluir cadastro do colaborador ${collab.name}?`)) {
-                            deleteCollaborator(collab.id);
-                          }
-                        }}
-                        title="Excluir Colaborador"
-                        className="p-1.5 text-gray-400 hover:text-rose-400 hover:bg-dark-750 rounded-lg transition-colors cursor-pointer"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* Faixa de Destaque: Regime de Remuneração & Ocupação Operacional */}
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 bg-dark-900/80 px-3 py-2.5 rounded-xl border border-white/5">
-                    <div className="flex flex-wrap items-center gap-2">
-                      {collab.paymentModel === 'mensal' ? (
-                        <>
-                          <span className="px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider bg-gold-500/20 text-gold-400 border border-gold-500/30">
-                            Mensalista
-                          </span>
-                          <div className="flex items-center gap-1.5">
-                            <span className="text-[10px] uppercase font-bold text-gray-400">Salário:</span>
-                            <span className="text-xs font-mono font-extrabold text-emerald-400">
-                              {formatCurrency(collab.monthlySalary || 0)}
-                            </span>
-                            <span className="text-[10px] text-gray-500">/ mês</span>
-                          </div>
-                          {(collab.extraRate || 0) > 0 && (
-                            <div className="flex items-center gap-1 pl-1.5 border-l border-white/10">
-                              <span className="text-[10px] uppercase font-bold text-amber-400/90">Extra:</span>
-                              <span className="text-xs font-mono font-bold text-amber-300">
-                                +{formatCurrency(collab.extraRate || 0)}
-                              </span>
-                            </div>
-                          )}
-                        </>
-                      ) : (
-                        <>
-                          <span className="px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider bg-emerald-500/15 text-emerald-300 border border-emerald-500/30">
-                            Diarista
-                          </span>
-                          <div className="flex items-center gap-1.5">
-                            <span className="text-[10px] uppercase font-bold text-gray-400">Diária:</span>
-                            <span className="text-xs font-mono font-extrabold text-emerald-400">
-                              {formatCurrency(collab.dailyRate || 280)}
-                            </span>
-                            <span className="text-[10px] text-gray-500">/ dia</span>
-                          </div>
-                        </>
-                      )}
-                    </div>
-
-                    <div className="flex items-center justify-between sm:justify-end gap-2.5">
-                      <button
-                        type="button"
-                        onClick={() => openExtraPaymentModal(collab)}
-                        className="px-2.5 py-1 rounded-lg bg-amber-500/15 hover:bg-amber-500 text-amber-300 hover:text-black border border-amber-500/30 text-[11px] font-bold transition-all flex items-center gap-1 cursor-pointer"
-                        title="Lançar valor extra (viagem / dia extra), diária ou salário no financeiro"
-                      >
-                        <Coins className="w-3.5 h-3.5" />
-                        <span>{collab.paymentModel === 'mensal' ? '+ Valor Extra / Salário' : '+ Lançar Diária / Extra'}</span>
-                      </button>
-
-                      <div className="text-[11px]">
-                        {assignedSales.length > 0 ? (
-                          <span className="text-amber-400 font-semibold flex items-center gap-1.5">
-                            <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse"></span>
-                            {assignedSales.length} {assignedSales.length === 1 ? 'obra' : 'obras'}
-                          </span>
-                        ) : (
-                          <span className="text-emerald-400 font-medium flex items-center gap-1.5">
-                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
-                            Livre
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Personal & Documentation Details Grid */}
-                <div className="grid grid-cols-2 gap-3 text-xs pt-2">
-                  <div className="bg-dark-900 p-2.5 rounded-xl border border-white/5">
-                    <span className="text-[10px] uppercase font-bold text-gray-400 block">CPF</span>
-                    <span className="font-mono text-white mt-0.5 block">{collab.cpf}</span>
-                  </div>
-                  <div className="bg-dark-900 p-2.5 rounded-xl border border-white/5">
-                    <span className="text-[10px] uppercase font-bold text-gray-400 block">RG</span>
-                    <span className="font-mono text-white mt-0.5 block">{collab.rg}</span>
-                  </div>
-                  <div className="bg-dark-900 p-2.5 rounded-xl border border-white/5">
-                    <span className="text-[10px] uppercase font-bold text-gray-400 block">Telefone / WhatsApp</span>
-                    <a
-                      href={`https://wa.me/55${collab.phone.replace(/\D/g, '')}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-gold-400 hover:underline flex items-center gap-1 mt-0.5 font-medium"
-                    >
-                      <Phone className="w-3 h-3" />
-                      <span>{collab.phone}</span>
-                    </a>
-                  </div>
-                  <div className="bg-dark-900 p-2.5 rounded-xl border border-white/5">
-                    <span className="text-[10px] uppercase font-bold text-gray-400 block">E-mail</span>
-                    <span className="text-gray-300 truncate mt-0.5 block">{collab.email}</span>
-                  </div>
-                </div>
-
-                {/* Residential Address */}
-                <div className="bg-dark-900 p-3 rounded-xl border border-white/5 mt-3 text-xs">
-                  <span className="text-[10px] uppercase font-bold text-gold-400/80 block mb-1">
-                    Endereço Residencial
-                  </span>
-                  <div className="text-gray-200 flex items-start gap-1.5">
-                    <MapPin className="w-3.5 h-3.5 text-gold-500 shrink-0 mt-0.5" />
-                    <span>
-                      {collab.address.street}, {collab.address.number}
-                      {collab.address.complement && ` (${collab.address.complement})`}<br />
-                      {collab.address.neighborhood} - {collab.address.city}/{collab.address.state} • CEP {collab.address.zipCode}
+                    <span className={`px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider shrink-0 ${
+                      collab.status === 'em_montagem'
+                        ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
+                        : collab.status === 'disponivel'
+                        ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
+                        : 'bg-gray-500/20 text-gray-400'
+                    }`}>
+                      {collab.status === 'em_montagem' ? 'Em Obra' : collab.status === 'disponivel' ? 'Disponível' : collab.status}
                     </span>
                   </div>
-                  {collab.address.landmark && (
-                    <div className="text-[11px] text-gray-400 mt-1 pl-5">
-                      Ref: {collab.address.landmark}
-                    </div>
-                  )}
-                </div>
 
-                {/* Skills tags */}
-                <div className="mt-3">
-                  <span className="text-[10px] uppercase font-bold text-gray-400 block mb-1.5">
-                    Especialidades & Habilidades
-                  </span>
-                  <div className="flex flex-wrap gap-1.5">
-                    {collab.skills.map((skill, idx) => (
-                      <span
-                        key={idx}
-                        className="px-2 py-0.5 rounded-md text-[11px] font-medium bg-dark-950 text-gray-300 border border-white/5"
-                      >
-                        {skill}
+                  {/* Remuneração resumida e ocupação */}
+                  <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px]">
+                    {collab.paymentModel === 'mensal' ? (
+                      <span className="text-gray-300">
+                        <span className="font-bold uppercase text-gold-400">Mensalista</span>
+                        {' · '}
+                        <span className="font-mono font-bold text-emerald-400">{formatCurrency(collab.monthlySalary || 0)}</span>
+                        <span className="text-gray-500">/mês</span>
+                        {(collab.extraRate || 0) > 0 && (
+                          <span className="text-amber-300"> · Extra +{formatCurrency(collab.extraRate || 0)}</span>
+                        )}
                       </span>
-                    ))}
+                    ) : (
+                      <span className="text-gray-300">
+                        <span className="font-bold uppercase text-emerald-300">Diarista</span>
+                        {' · '}
+                        <span className="font-mono font-bold text-emerald-400">{formatCurrency(collab.dailyRate || 280)}</span>
+                        <span className="text-gray-500">/dia</span>
+                      </span>
+                    )}
+
+                    {assignedSales.length > 0 ? (
+                      <span className="text-amber-400 font-semibold flex items-center gap-1.5">
+                        <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse"></span>
+                        {assignedSales.length} {assignedSales.length === 1 ? 'obra' : 'obras'}
+                      </span>
+                    ) : (
+                      <span className="text-emerald-400 font-medium flex items-center gap-1.5">
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+                        Livre
+                      </span>
+                    )}
                   </div>
                 </div>
               </div>
 
-              {/* Footer info: Installations count & admission date */}
-              <div className="bg-dark-900 p-3 rounded-xl border border-white/5 flex flex-wrap items-center justify-between gap-2 text-xs">
-                <div className="flex items-center gap-1.5 text-gray-300">
-                  <Award className="w-4 h-4 text-gold-400" />
-                  <span>
-                    <strong className="text-white font-mono">{collab.completedInstallations}</strong> montagens concluídas
-                  </span>
-                </div>
+              {/* Contato e ações rápidas */}
+              <div className="flex flex-wrap items-center justify-between gap-2 pt-3 border-t border-white/5">
+                <a
+                  href={`https://wa.me/55${collab.phone.replace(/\D/g, '')}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={e => e.stopPropagation()}
+                  className="text-gold-400 hover:underline flex items-center gap-1.5 text-xs font-medium"
+                >
+                  <Phone className="w-3.5 h-3.5" />
+                  <span>{collab.phone}</span>
+                </a>
 
-                <div className="text-gray-400 text-[11px] flex items-center gap-1">
-                  <Calendar className="w-3.5 h-3.5 text-gray-500" />
-                  <span>Admissão: {formatAdmissionDate(collab.admissionDate)}</span>
+                <div className="flex items-center gap-1.5">
+                  <button
+                    type="button"
+                    onClick={e => {
+                      e.stopPropagation();
+                      openExtraPaymentModal(collab);
+                    }}
+                    className="px-2.5 py-1 rounded-lg bg-amber-500/15 hover:bg-amber-500 text-amber-300 hover:text-black border border-amber-500/30 text-[11px] font-bold transition-all flex items-center gap-1 cursor-pointer"
+                    title="Lançar valor extra (viagem / dia extra), diária ou salário no financeiro"
+                  >
+                    <Coins className="w-3.5 h-3.5" />
+                    <span>{collab.paymentModel === 'mensal' ? 'Extra / Salário' : 'Diária / Extra'}</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={e => {
+                      e.stopPropagation();
+                      openEditModal(collab);
+                    }}
+                    title="Editar Colaborador"
+                    className="p-1.5 text-gray-400 hover:text-gold-400 hover:bg-dark-750 rounded-lg transition-colors cursor-pointer"
+                  >
+                    <Edit3 className="w-4 h-4" />
+                  </button>
                 </div>
               </div>
             </div>
           );
         })}
       </div>
+
+      {/* Webcam (notebook / desktop) para foto do colaborador */}
+      <CameraCaptureModal
+        isOpen={isCameraOpen}
+        onClose={() => setIsCameraOpen(false)}
+        onCapture={processPhotoFile}
+      />
+
+      {/* Ficha completa do colaborador (parte interna) */}
+      {(() => {
+        const viewing = collaborators.find(c => c.id === viewingCollabId);
+        if (!viewing) return null;
+
+        const viewingSales = sales.filter(s => s.assignedCollaboratorIds.includes(viewing.id) && s.status !== 'concluido');
+        const viewingHistory = cashFlow
+          .filter(
+            entry =>
+              entry.type === 'despesa' &&
+              (entry.clientOrSupplier === viewing.name ||
+                entry.description.toLowerCase().includes(viewing.name.toLowerCase()))
+          )
+          .sort((a, b) => b.date.localeCompare(a.date))
+          .slice(0, 5);
+
+        return (
+          <Modal
+            isOpen={true}
+            onClose={() => setViewingCollabId(null)}
+            title={viewing.name}
+            subtitle={viewing.role}
+            maxWidth="2xl"
+          >
+            <div className="space-y-4 text-xs">
+              {/* Foto, status e remuneração */}
+              <div className="flex items-start gap-4">
+                <CollaboratorAvatar
+                  name={viewing.name}
+                  photoUrl={viewing.photoUrl}
+                  sizeClass="w-24 h-32"
+                  textClass="text-3xl"
+                />
+                <div className="space-y-2 min-w-0">
+                  <span className={`inline-block px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider ${
+                    viewing.status === 'em_montagem'
+                      ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
+                      : viewing.status === 'disponivel'
+                      ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
+                      : 'bg-gray-500/20 text-gray-400'
+                  }`}>
+                    {viewing.status === 'em_montagem' ? 'Em Obra' : viewing.status === 'disponivel' ? 'Disponível' : viewing.status}
+                  </span>
+
+                  <div className="text-gray-300">
+                    {viewing.paymentModel === 'mensal' ? (
+                      <>
+                        <span className="font-bold uppercase text-gold-400">Mensalista</span>
+                        {' · '}
+                        <span className="font-mono font-bold text-emerald-400">{formatCurrency(viewing.monthlySalary || 0)}</span>
+                        <span className="text-gray-500">/mês</span>
+                        {(viewing.extraRate || 0) > 0 && (
+                          <span className="text-amber-300"> · Extra +{formatCurrency(viewing.extraRate || 0)}</span>
+                        )}
+                      </>
+                    ) : (
+                      <>
+                        <span className="font-bold uppercase text-emerald-300">Diarista</span>
+                        {' · '}
+                        <span className="font-mono font-bold text-emerald-400">{formatCurrency(viewing.dailyRate || 280)}</span>
+                        <span className="text-gray-500">/dia</span>
+                      </>
+                    )}
+                  </div>
+
+                  <div className="flex items-center gap-1.5 text-gray-300">
+                    <Award className="w-4 h-4 text-gold-400" />
+                    <span>
+                      <strong className="text-white font-mono">{viewing.completedInstallations}</strong> montagens concluídas
+                    </span>
+                  </div>
+
+                  <div className="text-gray-400 flex items-center gap-1.5">
+                    <Calendar className="w-3.5 h-3.5 text-gray-500" />
+                    <span>Admissão: {formatAdmissionDate(viewing.admissionDate)}</span>
+                  </div>
+
+                  <div className="text-[11px]">
+                    {viewingSales.length > 0 ? (
+                      <span className="text-amber-400 font-semibold">
+                        {viewingSales.length} {viewingSales.length === 1 ? 'obra em andamento' : 'obras em andamento'}
+                      </span>
+                    ) : (
+                      <span className="text-emerald-400 font-medium">Livre no momento</span>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Documentos e contato */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="bg-dark-900 p-2.5 rounded-xl border border-white/5">
+                  <span className="text-[10px] uppercase font-bold text-gray-400 block">CPF</span>
+                  <span className="font-mono text-white mt-0.5 block">{viewing.cpf}</span>
+                </div>
+                <div className="bg-dark-900 p-2.5 rounded-xl border border-white/5">
+                  <span className="text-[10px] uppercase font-bold text-gray-400 block">RG</span>
+                  <span className="font-mono text-white mt-0.5 block">{viewing.rg}</span>
+                </div>
+                <div className="bg-dark-900 p-2.5 rounded-xl border border-white/5">
+                  <span className="text-[10px] uppercase font-bold text-gray-400 block">Telefone / WhatsApp</span>
+                  <a
+                    href={`https://wa.me/55${viewing.phone.replace(/\D/g, '')}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-gold-400 hover:underline flex items-center gap-1 mt-0.5 font-medium"
+                  >
+                    <Phone className="w-3 h-3" />
+                    <span>{viewing.phone}</span>
+                  </a>
+                </div>
+                <div className="bg-dark-900 p-2.5 rounded-xl border border-white/5">
+                  <span className="text-[10px] uppercase font-bold text-gray-400 block">E-mail</span>
+                  <span className="text-gray-300 break-all mt-0.5 block">{viewing.email || '—'}</span>
+                </div>
+              </div>
+
+              {/* Endereço */}
+              <div className="bg-dark-900 p-3 rounded-xl border border-white/5">
+                <span className="text-[10px] uppercase font-bold text-gold-400/80 block mb-1">Endereço Residencial</span>
+                <div className="text-gray-200 flex items-start gap-1.5">
+                  <MapPin className="w-3.5 h-3.5 text-gold-500 shrink-0 mt-0.5" />
+                  <span>
+                    {viewing.address.street}, {viewing.address.number}
+                    {viewing.address.complement && ` (${viewing.address.complement})`}<br />
+                    {viewing.address.neighborhood} - {viewing.address.city}/{viewing.address.state} • CEP {viewing.address.zipCode}
+                  </span>
+                </div>
+                {viewing.address.landmark && (
+                  <div className="text-[11px] text-gray-400 mt-1 pl-5">Ref: {viewing.address.landmark}</div>
+                )}
+              </div>
+
+              {/* Habilidades */}
+              <div>
+                <span className="text-[10px] uppercase font-bold text-gray-400 block mb-1.5">Especialidades & Habilidades</span>
+                <div className="flex flex-wrap gap-1.5">
+                  {viewing.skills.map((skill, idx) => (
+                    <span
+                      key={idx}
+                      className="px-2 py-0.5 rounded-md text-[11px] font-medium bg-dark-950 text-gray-300 border border-white/5"
+                    >
+                      {skill}
+                    </span>
+                  ))}
+                </div>
+              </div>
+
+              {/* Últimos pagamentos */}
+              {viewingHistory.length > 0 && (
+                <div className="bg-dark-900/70 p-3 rounded-xl border border-white/5 space-y-1.5">
+                  <span className="text-[10px] uppercase font-bold text-gray-400 block">Últimos pagamentos lançados</span>
+                  {viewingHistory.map(item => (
+                    <div
+                      key={item.id}
+                      title={item.description}
+                      className="flex items-center justify-between gap-2 text-[11px] bg-dark-950 px-2.5 py-1.5 rounded-lg border border-white/5"
+                    >
+                      <div className="truncate text-gray-300 flex-1 min-w-0">
+                        <span className="text-gray-500 font-mono mr-1.5">[{formatAdmissionDate(item.date)}]</span>
+                        <span>{item.description}</span>
+                      </div>
+                      <span className="font-mono font-bold text-amber-400 shrink-0">{formatCurrency(item.amount)}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Ações */}
+              <div className="flex flex-wrap items-center justify-between gap-2 pt-3 border-t border-white/5">
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (window.confirm(`Excluir cadastro do colaborador ${viewing.name}?`)) {
+                      deleteCollaborator(viewing.id);
+                      setViewingCollabId(null);
+                    }
+                  }}
+                  className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-rose-400 hover:bg-rose-500/10 transition-colors cursor-pointer font-semibold"
+                >
+                  <Trash2 className="w-4 h-4" />
+                  <span>Excluir</span>
+                </button>
+
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setViewingCollabId(null);
+                      openExtraPaymentModal(viewing);
+                    }}
+                    className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-amber-500/15 hover:bg-amber-500 text-amber-300 hover:text-black border border-amber-500/30 font-bold transition-all cursor-pointer"
+                  >
+                    <Coins className="w-4 h-4" />
+                    <span>{viewing.paymentModel === 'mensal' ? 'Extra / Salário' : 'Diária / Extra'}</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setViewingCollabId(null);
+                      openEditModal(viewing);
+                    }}
+                    className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-gold-500 hover:bg-gold-600 text-black font-bold transition-all cursor-pointer"
+                  >
+                    <Edit3 className="w-4 h-4" />
+                    <span>Editar</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </Modal>
+        );
+      })()}
 
       {/* Modal Cadastrar / Editar Colaborador */}
       <Modal
@@ -638,6 +803,79 @@ export const CollaboratorsManager: React.FC = () => {
             <h4 className="font-bold text-gold-400 uppercase tracking-wider mb-2">
               1. Dados Pessoais & Documentação
             </h4>
+
+            {/* Foto 3x4 do colaborador */}
+            <div className="flex items-center gap-4 mb-4 bg-dark-900/60 p-3 rounded-xl border border-white/5">
+              <div className="relative shrink-0">
+                <CollaboratorAvatar
+                  name={name || '?'}
+                  photoUrl={photoUrl}
+                  sizeClass="w-24 h-32"
+                  textClass="text-3xl"
+                />
+                {photoLoading && (
+                  <div className="absolute inset-0 rounded-xl bg-black/70 flex items-center justify-center text-[10px] text-gold-400 font-bold">
+                    Processando...
+                  </div>
+                )}
+              </div>
+
+              <div className="space-y-2 min-w-0">
+                <div>
+                  <span className="text-gray-300 font-semibold block">Foto do Colaborador (3x4)</span>
+                  <span className="text-[10px] text-gray-500 block">
+                    Tire a foto com a câmera do celular ou escolha uma da galeria. Ela é ajustada automaticamente para 3x4.
+                  </span>
+                </div>
+
+                <div className="flex flex-wrap items-center gap-2">
+                  {isTouchDevice ? (
+                    <label className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gold-500 hover:bg-gold-600 text-black font-bold cursor-pointer transition-colors">
+                      <Camera className="w-3.5 h-3.5" />
+                      <span>Tirar foto</span>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        capture="user"
+                        className="hidden"
+                        onChange={handlePhotoSelected}
+                      />
+                    </label>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => setIsCameraOpen(true)}
+                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gold-500 hover:bg-gold-600 text-black font-bold cursor-pointer transition-colors"
+                    >
+                      <Camera className="w-3.5 h-3.5" />
+                      <span>Tirar foto</span>
+                    </button>
+                  )}
+
+                  <label className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-dark-800 hover:bg-dark-750 text-gold-400 border border-gold-500/30 font-bold cursor-pointer transition-colors">
+                    <ImageIcon className="w-3.5 h-3.5" />
+                    <span>Galeria</span>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={handlePhotoSelected}
+                    />
+                  </label>
+
+                  {photoUrl && (
+                    <button
+                      type="button"
+                      onClick={() => setPhotoUrl('')}
+                      className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-gray-400 hover:text-rose-400 hover:bg-rose-500/10 transition-colors cursor-pointer"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                      <span>Remover</span>
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               <div className="sm:col-span-2">
                 <label className="text-gray-300 block mb-1">Nome Completo *</label>
