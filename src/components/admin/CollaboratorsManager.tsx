@@ -459,9 +459,7 @@ export const CollaboratorsManager: React.FC = () => {
           return (
             <div
               key={collab.id}
-              onClick={() => setViewingCollabId(collab.id)}
-              className="bg-dark-850 border border-white/10 rounded-2xl p-4 hover:border-gold-500/40 transition-all cursor-pointer space-y-3"
-              title="Clique para ver a ficha completa"
+              className="bg-dark-850 border border-white/10 rounded-2xl p-4 hover:border-gold-500/30 transition-all space-y-3"
             >
               {/* Foto, nome, cargo e status */}
               <div className="flex items-start gap-3">
@@ -530,7 +528,6 @@ export const CollaboratorsManager: React.FC = () => {
                   href={`https://wa.me/55${collab.phone.replace(/\D/g, '')}`}
                   target="_blank"
                   rel="noopener noreferrer"
-                  onClick={e => e.stopPropagation()}
                   className="text-gold-400 hover:underline flex items-center gap-1.5 text-xs font-medium"
                 >
                   <Phone className="w-3.5 h-3.5" />
@@ -540,10 +537,7 @@ export const CollaboratorsManager: React.FC = () => {
                 <div className="flex items-center gap-1.5">
                   <button
                     type="button"
-                    onClick={e => {
-                      e.stopPropagation();
-                      openExtraPaymentModal(collab);
-                    }}
+                    onClick={() => openExtraPaymentModal(collab)}
                     className="px-2.5 py-1 rounded-lg bg-amber-500/15 hover:bg-amber-500 text-amber-300 hover:text-black border border-amber-500/30 text-[11px] font-bold transition-all flex items-center gap-1 cursor-pointer"
                     title="Lançar valor extra (viagem / dia extra), diária ou salário no financeiro"
                   >
@@ -552,14 +546,23 @@ export const CollaboratorsManager: React.FC = () => {
                   </button>
                   <button
                     type="button"
-                    onClick={e => {
-                      e.stopPropagation();
-                      openEditModal(collab);
-                    }}
-                    title="Editar Colaborador"
+                    onClick={() => openEditModal(collab)}
+                    title="Ver / Editar Cadastro do Colaborador"
                     className="p-1.5 text-gray-400 hover:text-gold-400 hover:bg-dark-750 rounded-lg transition-colors cursor-pointer"
                   >
                     <Edit3 className="w-4 h-4" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (window.confirm(`Excluir cadastro do colaborador ${collab.name}?`)) {
+                        deleteCollaborator(collab.id);
+                      }
+                    }}
+                    title="Excluir Colaborador"
+                    className="p-1.5 text-gray-400 hover:text-rose-400 hover:bg-dark-750 rounded-lg transition-colors cursor-pointer"
+                  >
+                    <Trash2 className="w-4 h-4" />
                   </button>
                 </div>
               </div>
