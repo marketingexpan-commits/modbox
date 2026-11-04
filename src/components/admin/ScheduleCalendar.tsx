@@ -20,6 +20,7 @@ import {
 } from 'lucide-react';
 import { useModBox } from '../../context/ModBoxContext';
 import { SaleOrder, Collaborator } from '../../types';
+import { CollaboratorAvatar } from '../common/CollaboratorAvatar';
 
 interface ScheduleCalendarProps {
   onNavigateToSale?: (saleId: string) => void;
@@ -545,7 +546,7 @@ export const ScheduleCalendar: React.FC<ScheduleCalendarProps> = ({
                           </div>
 
                           {/* Equipe em campo nesta obra */}
-                          <div className="pt-2 border-t border-white/5 space-y-1">
+                          <div className="pt-2 border-t border-white/5 space-y-1.5">
                             <span className="text-[10px] uppercase font-bold text-gray-400 block">
                               Equipe Escalada nesta Obra:
                             </span>
@@ -553,9 +554,15 @@ export const ScheduleCalendar: React.FC<ScheduleCalendarProps> = ({
                               {assignedCols.map(col => (
                                 <span
                                   key={col.id}
-                                  className="px-2 py-0.5 rounded text-[11px] font-semibold bg-dark-750 text-white border border-white/10 flex items-center gap-1"
+                                  className="px-2 py-1.5 rounded-xl text-[11px] font-semibold bg-dark-750 text-white border border-white/10 flex items-center gap-2"
                                 >
-                                  <HardHat className="w-3 h-3 text-gold-400" />
+                                  <CollaboratorAvatar
+                                    name={col.name}
+                                    photoUrl={col.photoUrl}
+                                    sizeClass="w-7 h-[2.333rem]"
+                                    roundedClass="rounded"
+                                    textClass="text-[10px]"
+                                  />
                                   <span>{col.name.split(' ')[0]}</span>
                                   <span className="text-[10px] text-gray-400">({col.role.split(' ')[0]})</span>
                                 </span>
@@ -586,9 +593,15 @@ export const ScheduleCalendar: React.FC<ScheduleCalendarProps> = ({
                     {freeCollaboratorsOnSelectedDay.map(c => (
                       <span
                         key={c.id}
-                        className="px-2 py-1 rounded-lg text-xs font-semibold bg-emerald-500/10 text-emerald-300 border border-emerald-500/20 flex items-center gap-1"
+                        className="px-2 py-1.5 rounded-xl text-xs font-semibold bg-emerald-500/10 text-emerald-300 border border-emerald-500/20 flex items-center gap-2"
                       >
-                        <CheckCircle2 className="w-3 h-3 text-emerald-400" />
+                        <CollaboratorAvatar
+                          name={c.name}
+                          photoUrl={c.photoUrl}
+                          sizeClass="w-7 h-[2.333rem]"
+                          roundedClass="rounded"
+                          textClass="text-[10px]"
+                        />
                         <span>{c.name.split(' ')[0]}</span>
                         <span className="text-[10px] text-emerald-400/70">({c.role.split(' ')[0]})</span>
                       </span>
@@ -640,12 +653,20 @@ export const ScheduleCalendar: React.FC<ScheduleCalendarProps> = ({
                   }`}
                 >
                   <div className="flex items-start justify-between gap-2">
-                    <div>
-                      <h4 className="font-bold text-white text-sm">{collab.name}</h4>
-                      <p className="text-xs text-gold-400 font-semibold">{collab.role}</p>
-                      <p className="text-[11px] text-gray-400 mt-1">
-                        Habilidades: {collab.skills.slice(0, 3).join(', ')}
-                      </p>
+                    <div className="flex items-start gap-3">
+                      <CollaboratorAvatar
+                        name={collab.name}
+                        photoUrl={collab.photoUrl}
+                        sizeClass="w-11 h-[3.667rem]"
+                        textClass="text-sm"
+                      />
+                      <div>
+                        <h4 className="font-bold text-white text-sm">{collab.name}</h4>
+                        <p className="text-xs text-gold-400 font-semibold">{collab.role}</p>
+                        <p className="text-[11px] text-gray-400 mt-1">
+                          Habilidades: {collab.skills.slice(0, 3).join(', ')}
+                        </p>
+                      </div>
                     </div>
 
                     <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider shrink-0 ${

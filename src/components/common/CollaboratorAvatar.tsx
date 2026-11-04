@@ -8,6 +8,7 @@ interface CollaboratorAvatarProps {
   /** Classes de tamanho, ex: "w-12 h-16". Mantenha a proporção 3x4. */
   sizeClass?: string;
   textClass?: string;
+  roundedClass?: string;
 }
 
 /**
@@ -18,7 +19,8 @@ export const CollaboratorAvatar: React.FC<CollaboratorAvatarProps> = ({
   name,
   photoUrl,
   sizeClass = 'w-12 h-16',
-  textClass = 'text-lg'
+  textClass = 'text-lg',
+  roundedClass = 'rounded-lg'
 }) => {
   const [isZoomOpen, setIsZoomOpen] = useState(false);
 
@@ -41,7 +43,7 @@ export const CollaboratorAvatar: React.FC<CollaboratorAvatarProps> = ({
             setIsZoomOpen(true);
           }}
           title="Clique para ampliar a foto"
-          className={`${sizeClass} relative group rounded-xl overflow-hidden border border-gold-500/40 hover:border-gold-400 shrink-0 bg-dark-900 cursor-zoom-in transition-all focus:outline-none`}
+          className={`${sizeClass} ${roundedClass} relative group overflow-hidden border border-gold-500/40 hover:border-gold-400 shrink-0 bg-dark-900 cursor-zoom-in transition-all focus:outline-none`}
         >
           <img
             src={photoUrl}
@@ -95,7 +97,7 @@ export const CollaboratorAvatar: React.FC<CollaboratorAvatarProps> = ({
 
   return (
     <div
-      className={`${sizeClass} rounded-xl bg-gold-500/10 border border-gold-500/30 flex items-center justify-center text-gold-500 font-bold ${textClass} shrink-0`}
+      className={`${sizeClass} ${roundedClass} bg-gold-500/10 border border-gold-500/30 flex items-center justify-center text-gold-500 font-bold ${textClass} shrink-0`}
     >
       {name.charAt(0)}
     </div>
